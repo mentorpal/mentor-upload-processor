@@ -67,6 +67,10 @@ def transcode_mobile(video_file, s3_path):
 
 def fetch_from_graphql(request, task):
     upload_task = fetch_task(request["mentor"], request["question"])
+    if not upload_task:
+        # this can happen if any task_list status is failed and client deletes the task
+        return None
+
     stored_task = next(
         (x for x in upload_task["taskList"] if x["task_id"] == task["task_id"]),
         None,
@@ -84,6 +88,10 @@ def fetch_from_graphql(request, task):
 def process_task(request, task):
     log.info("video to process %s", request["video"])
     stored_task = fetch_from_graphql(request, task)
+    if not stored_task:
+        log.warn("task not found, skipping transcode")
+        return
+    
     if stored_task["status"].startswith("CANCEL"):
         log.info("task cancelled, skipping transcription")
         return

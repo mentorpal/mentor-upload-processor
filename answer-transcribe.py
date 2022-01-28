@@ -10,7 +10,7 @@ import tempfile
 import os
 import logger
 import transcribe
-from media_tools import video_to_audio
+from media_tools import video_to_audio, has_audio
 from api import (
     AnswerUpdateRequest,
     UpdateTaskStatusRequest,
@@ -22,6 +22,7 @@ from api import (
 
 
 log = logger.get_logger("answer-transcribe-handler")
+
 
 if os.environ.get("IS_SENTRY_ENABLED", "") == "true":
     log.info("SENTRY enabled, calling init")
@@ -60,17 +61,22 @@ def is_idle_question(question_id: str) -> bool:
 def transcribe_video(mentor, question, task_id, video_file, s3_path):
     transcript = ""
     subtitles = ""
-    audio_file = video_to_audio(video_file)
-    log.info("transcribing %s", audio_file)
-    transcription_service = transcribe.init_transcription_service()
-    transcribe_result = transcription_service.transcribe(
-        [transcribe.TranscribeJobRequest(sourceFile=audio_file, generateSubtitles=True)]
-    )
-    job_result = transcribe_result.first()
-    log.info("%s transcribed", audio_file)
-    log.debug("%s", job_result)
-    transcript = job_result.transcript if job_result else ""
-    subtitles = job_result.subtitles if job_result else ""
+    if not has_audio(video_file):
+        log.warn('video file does not contain any audio streams')
+        # continue to overwrite any existing previous transcript
+    else:
+        audio_file = video_to_audio(video_file) # fails if no audio stream exists
+        log.info("transcribing %s", audio_file)
+        transcription_service = transcribe.init_transcription_service()
+        transcribe_result = transcription_service.transcribe(
+            [transcribe.TranscribeJobRequest(sourceFile=audio_file, generateSubtitles=True)]
+        )
+        job_result = transcribe_result.first()
+        log.info("%s transcribed", audio_file)
+        log.debug("%s", job_result)
+        transcript = job_result.transcript if job_result else ""
+        subtitles = job_result.subtitles if job_result else ""
+
     media = []
     if subtitles:
         vtt_file = os.path.join(os.path.dirname(video_file), "en.vtt")
@@ -110,6 +116,9 @@ def transcribe_video(mentor, question, task_id, video_file, s3_path):
 
 def fetch_from_graphql(request, task):
     upload_task = fetch_task(request["mentor"], request["question"])
+    if not upload_task:
+        # this can happen if any task_list status is failed and client deletes the task
+        return None
     stored_task = next(
         (x for x in upload_task["taskList"] if x["task_id"] == task["task_id"]),
         None,
@@ -126,6 +135,9 @@ def fetch_from_graphql(request, task):
 
 def process_task(request, task):
     stored_task = fetch_from_graphql(request, task)
+    if not stored_task:
+        log.warn("task not found, skipping transcription")
+        return
     if stored_task["status"].startswith("CANCEL"):
         log.info("task cancelled, skipping transcription")
         return

@@ -22,6 +22,11 @@ FFMPEG_EXECUTABLE = os.environ.get("FFMPEG_EXECUTABLE", "/opt/ffmpeg/ffmpeg")
 log = logging.getLogger("media-tools")
 
 
+def has_audio(audio_or_video_file: str) -> bool:
+    media_info = MediaInfo.parse(audio_or_video_file, library_file=LIB_FILE)
+    return len(media_info.audio_tracks) > 0
+
+
 def find_duration(audio_or_video_file: str) -> float:
     log.info(audio_or_video_file)
     media_info = MediaInfo.parse(audio_or_video_file, library_file=LIB_FILE)
@@ -143,7 +148,7 @@ def output_args_video_encode_for_web(
 
 
 def output_args_video_to_audio() -> Tuple[str, ...]:
-    return ("-loglevel", "quiet", "-y")
+    return ("-loglevel", "info", "-y")
 
 
 def video_encode_for_mobile(src_file: str, tgt_file: str, target_height=480) -> None:
