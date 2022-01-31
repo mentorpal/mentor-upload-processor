@@ -168,8 +168,10 @@ functions:
 
   answer-transcribe:
     handler: answer-transcribe.handler
-    memorySize: 2048 # need to extract audio
-    timeout: 300
+    memorySize: 1024 # need to extract audio
+    timeout: 120
+    # https://docs.aws.amazon.com/lambda/latest/operatorguide/reserved-concurrency.html
+    reservedConcurrency: 5 # workaround for https://github.com/ICTLearningSciences/py-transcribe-aws/issues/12
     environment:
       TRANSCRIBE_MODULE_PATH: transcribe_aws
       TRANSCRIBE_AWS_REGION: ${self:provider.region}
@@ -220,7 +222,7 @@ resources:
       Properties:
         # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-sqs-queues.html
         QueueName: upload-trancode-web-queue-${self:provider.stage}
-        VisibilityTimeout: 600 # default too low, we need to give lambdas time to finish processing
+        VisibilityTimeout: 300 # default too low, we need to give lambdas time to finish processing
         RedrivePolicy:
           deadLetterTargetArn:
             Fn::GetAtt: [TranscodeWebDLQ, Arn]
@@ -231,7 +233,7 @@ resources:
       Properties:
         # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-sqs-queues.html
         QueueName: upload-trancode-mobile-queue-${self:provider.stage}
-        VisibilityTimeout: 600 # default too low, we need to give lambdas time to finish processing
+        VisibilityTimeout: 300 # default too low, we need to give lambdas time to finish processing
         RedrivePolicy:
           deadLetterTargetArn:
             Fn::GetAtt: [TranscodeMobileDLQ, Arn]
