@@ -107,6 +107,7 @@ def transcribe_video(mentor, question, task_id, video_file, s3_path):
         UpdateTaskStatusRequest(
             mentor=mentor,
             question=question,
+            transcript=transcript,
             task_id=task_id,
             new_status="DONE",
             media=media,
