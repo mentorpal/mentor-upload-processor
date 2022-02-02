@@ -141,7 +141,7 @@ functions:
   answer-transcode-web:
     handler: answer-transcode-web.handler
     memorySize: 8192 # 5min video takes 100sec with 2GB, 50sec with 4GB, 30sec with 8GB
-    timeout: 300
+    timeout: 60
     events:
       - sqs:
           arn:
@@ -155,7 +155,7 @@ functions:
   answer-transcode-mobile:
     handler: answer-transcode-mobile.handler
     memorySize: 8192 # 5min video takes 100sec with 2GB, 50sec with 4GB, 30sec with 8GB
-    timeout: 300
+    timeout: 60
     events:
       - sqs:
           arn:
@@ -222,33 +222,33 @@ resources:
       Properties:
         # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-sqs-queues.html
         QueueName: upload-trancode-web-queue-${self:provider.stage}
-        VisibilityTimeout: 300 # default too low, we need to give lambdas time to finish processing
+        VisibilityTimeout: 360 # AWS recommends 6 times lambdas timeou
         RedrivePolicy:
           deadLetterTargetArn:
             Fn::GetAtt: [TranscodeWebDLQ, Arn]
-          maxReceiveCount: 1 # try once and then move to DLQ
+          maxReceiveCount: 5 # AWS recommends minimum 5
     
     TranscodeMobileQueue:
       Type: AWS::SQS::Queue
       Properties:
         # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-sqs-queues.html
         QueueName: upload-trancode-mobile-queue-${self:provider.stage}
-        VisibilityTimeout: 300 # default too low, we need to give lambdas time to finish processing
+        VisibilityTimeout: 360 # AWS recommends 6 times lambdas timeou
         RedrivePolicy:
           deadLetterTargetArn:
             Fn::GetAtt: [TranscodeMobileDLQ, Arn]
-          maxReceiveCount: 1 # try once then move to DLQ
+          maxReceiveCount: 5 # AWS recommends minimum 5
     
     TranscribeQueue:
       Type: AWS::SQS::Queue
       Properties:
         # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-sqs-queues.html
         QueueName: upload-transcribe-queue-${self:provider.stage}
-        VisibilityTimeout: 300 # default 30sec too low, we need to give lambdas time to finish processing
+        VisibilityTimeout: 600 # AWS recommends 6 times lambdas timeou
         RedrivePolicy:
           deadLetterTargetArn:
             Fn::GetAtt: [TranscribeDLQ, Arn]
-          maxReceiveCount: 1 # try once and then move to DLQ
+          maxReceiveCount: 5 # AWS recommends minimum 5
 
     ProcessUploadSnsTopic:
       Type: AWS::SNS::Topic
