@@ -6,9 +6,9 @@
 #
 import json
 import boto3
+import botocore
 import tempfile
 import os
-
 import logger
 from api import (
     AnswerUpdateRequest,
@@ -20,7 +20,6 @@ from api import (
 
 
 log = logger.get_logger("answer-transcribe-handler")
-
 
 if os.environ.get("IS_SENTRY_ENABLED", "") == "true":
     log.info("SENTRY enabled, calling init")
@@ -83,15 +82,21 @@ def process_event(record):
         log.info("task cancelled, skipping transcription")
         return
 
-    with tempfile.TemporaryDirectory() as work_dir:        
+    with tempfile.TemporaryDirectory() as work_dir:
+        # since 2 files get dropped, there're 2 lambda invocations
+        # its possible that not both files are in s3 when lambda runs first time
         try:
             job_file = os.path.join(work_dir, 'transcribe.json')
             s3.download_file(record['s3']['bucket']['name'], f"{s3_path}/transcribe.json", job_file)
             vtt_file = os.path.join(work_dir, 'transcribe.vtt')
             s3.download_file(record['s3']['bucket']['name'], f"{s3_path}/transcribe.vtt", vtt_file)
-        except Exception as e:
-            log.info('failed to download one artifact: {}', e)
-            return
+        except botocore.exceptions.ClientError as e:
+            # https://boto3.amazonaws.com/v1/documentation/api/latest/guide/error-handling.html
+            if e.response["Error"]["Code"] == '404':
+                # on the second invocation both files will be present so this should not happen twice
+                log.info('failed to fetch transcript and subtitle')
+                return
+            raise e
         
         with open(job_file, 'r') as f:
             job = json.loads(f.read())
