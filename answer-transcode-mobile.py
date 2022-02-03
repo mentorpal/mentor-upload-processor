@@ -15,38 +15,11 @@ from api import (
     AnswerUpdateRequest,
     upload_task_status_update,
     upload_answer_and_task_status_update,
-    fetch_task,
 )
+from util import s3_bucket, load_sentry, fetch_from_graphql
 
-
+load_sentry()
 log = logger.get_logger("answer-transcode-mobile-handler")
-
-if os.environ.get("IS_SENTRY_ENABLED", "") == "true":
-    log.info("SENTRY enabled, calling init")
-    import sentry_sdk  # NOQA E402
-    from sentry_sdk.integrations.aws_lambda import AwsLambdaIntegration  # NOQA E402
-
-    sentry_sdk.init(
-        dsn=os.environ.get("SENTRY_DSN_MENTOR_UPLOAD"),
-        # include project so issues can be filtered in sentry:
-        environment=os.environ.get("PYTHON_ENV", "careerfair-qa"),
-        integrations=[AwsLambdaIntegration(timeout_warning=True)],
-        # Set traces_sample_rate to 1.0 to capture 100%
-        # of transactions for performance monitoring.
-        traces_sample_rate=0.20,
-        debug=os.environ.get("SENTRY_DEBUG_UPLOADER", "") == "true",
-    )
-
-
-def _require_env(n: str) -> str:
-    env_val = os.environ.get(n, "")
-    if not env_val:
-        raise EnvironmentError(f"missing required env var {n}")
-    return env_val
-
-
-s3_bucket = _require_env("S3_STATIC_ARN").split(":")[-1]
-log.info("using s3 bucket %s", s3_bucket)
 s3 = boto3.client("s3")
 
 
@@ -65,29 +38,9 @@ def transcode_mobile(video_file, s3_path):
     )
 
 
-def fetch_from_graphql(request, task):
-    upload_task = fetch_task(request["mentor"], request["question"])
-    if not upload_task:
-        # this can happen if any task_list status is failed and client deletes the task
-        return None
-
-    stored_task = next(
-        (x for x in upload_task["taskList"] if x["task_id"] == task["task_id"]),
-        None,
-    )
-    if stored_task is None:
-        log.error("task it doesnt match %s %s", task, upload_task["taskList"])
-        raise Exception(
-            "task it doesnt match %s %s",
-            task["task_id"],
-            [t["task_id"] for t in upload_task["taskList"]],
-        )
-    return stored_task
-
-
 def process_task(request, task):
     log.info("video to process %s", request["video"])
-    stored_task = fetch_from_graphql(request, task)
+    stored_task = fetch_from_graphql(request["mentor"], request["question"], task["task_id"])
     if not stored_task:
         log.warn("task not found, skipping transcode")
         return

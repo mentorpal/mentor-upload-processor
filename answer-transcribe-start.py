@@ -15,42 +15,15 @@ from api import (
     UpdateTaskStatusRequest,
     fetch_question_name,
     upload_task_status_update,
-    fetch_task,
 )
+from util import s3_bucket, require_env, load_sentry, fetch_from_graphql
 
-
+load_sentry()
 log = logger.get_logger("answer-transcribe-start-handler")
 
-
-if os.environ.get("IS_SENTRY_ENABLED", "") == "true":
-    log.info("SENTRY enabled, calling init")
-    import sentry_sdk  # NOQA E402
-    from sentry_sdk.integrations.aws_lambda import AwsLambdaIntegration  # NOQA E402
-
-    sentry_sdk.init(
-        dsn=os.environ.get("SENTRY_DSN_MENTOR_UPLOAD"),
-        # include project so issues can be filtered in sentry:
-        environment=os.environ.get("PYTHON_ENV", "careerfair-qa"),
-        integrations=[AwsLambdaIntegration(timeout_warning=True)],
-        # Set traces_sample_rate to 1.0 to capture 100%
-        # of transactions for performance monitoring.
-        traces_sample_rate=0.20,
-        debug=os.environ.get("SENTRY_DEBUG_UPLOADER", "") == "true",
-    )
-
-
-def _require_env(n: str) -> str:
-    env_val = os.environ.get(n, "")
-    if not env_val:
-        raise EnvironmentError(f"missing required env var {n}")
-    return env_val
-
-
 aws_region = os.environ.get('AWS_REGION','us-east-1')
-s3_bucket = _require_env("S3_STATIC_ARN").split(":")[-1]
-log.info("using s3 bucket %s", s3_bucket)
-input_bucket = _require_env("TRANSCRIBE_INPUT_BUCKET")
-output_bucket = _require_env("TRANSCRIBE_OUTPUT_BUCKET")
+input_bucket = require_env("TRANSCRIBE_INPUT_BUCKET")
+output_bucket = require_env("TRANSCRIBE_OUTPUT_BUCKET")
 s3 = boto3.client("s3")
 transcribe = boto3.client("transcribe", region_name=aws_region)
 
@@ -61,7 +34,7 @@ def is_idle_question(question_id: str) -> bool:
 
 
 def transcribe_video(mentor, question, task_id, video_file):
-    if not has_audio(video_file):
+    if not has_audio(video_file): # this does not work on mac :/
         log.warn('video file does not contain any audio streams')
         # continue to overwrite any existing previous transcript
     else:
@@ -97,27 +70,8 @@ def transcribe_video(mentor, question, task_id, video_file):
         log.info(job)
 
 
-def fetch_from_graphql(request, task):
-    upload_task = fetch_task(request["mentor"], request["question"])
-    if not upload_task:
-        # this can happen if any task_list status is failed and client deletes the task
-        return None
-    stored_task = next(
-        (x for x in upload_task["taskList"] if x["task_id"] == task["task_id"]),
-        None,
-    )
-    if stored_task is None:
-        log.error("task it doesnt match %s %s", task, upload_task["taskList"])
-        raise Exception(
-            "task it doesnt match %s %s",
-            task["task_id"],
-            [t["task_id"] for t in upload_task["taskList"]],
-        )
-    return stored_task
-
-
 def process_task(request, task):
-    stored_task = fetch_from_graphql(request, task)
+    stored_task = fetch_from_graphql(request["mentor"], request["question"], task["task_id"])
     if not stored_task:
         log.warn("task not found, skipping transcription")
         return
@@ -187,6 +141,6 @@ def handler(event, context):
 
 # # for local debugging:
 # if __name__ == '__main__':
-#     with open('./__events__/answer-event.json.dist') as f:
+#     with open('__events__/answer-event.json.dist') as f:
 #         event = json.loads(f.read())
 #         handler(event, {})
