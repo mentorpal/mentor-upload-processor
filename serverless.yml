@@ -191,13 +191,19 @@ functions:
     memorySize: 512
     timeout: 30
     events:
+      # only one suffix is allowed and we have .json and .vtt
       - s3:
           bucket: ${self:provider.environment.TRANSCRIBE_OUTPUT_BUCKET}
           event: s3:ObjectCreated:*
           existing: true # otherwise sls will try to create it twice and fail
           rules:
-            - prefix: 'transcribe.'
-            # only one prefix or suffix is allowed and we have .json and .vtt
+            - suffix: '.json'
+      - s3:
+          bucket: ${self:provider.environment.TRANSCRIBE_OUTPUT_BUCKET}
+          event: s3:ObjectCreated:*
+          existing: true # otherwise sls will try to create it twice and fail
+          rules:
+            - suffix: '.vtt'
 
 resources:
   Conditions:
