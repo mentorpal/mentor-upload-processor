@@ -1,0 +1,82 @@
+{
+  "jobName": "61ef5df326c18b5437c52612_607766dec525ba87bf68e79b_f1163c07-bc9a-432c-8829-1861f0a5a7c6",
+  "accountId": "100000000655",
+  "status": "COMPLETED",
+  "results": {
+    "transcripts": [
+      {
+        "transcript": "Hey guys in this video, we're gonna talk about celery."
+      }
+    ],
+    "items": [
+      {
+        "start_time": "0.74",
+        "end_time": "0.95",
+        "alternatives": [{ "confidence": "0.9993", "content": "Hey" }],
+        "type": "pronunciation"
+      },
+      {
+        "start_time": "0.95",
+        "end_time": "1.22",
+        "alternatives": [{ "confidence": "1.0", "content": "guys" }],
+        "type": "pronunciation"
+      },
+      {
+        "start_time": "1.22",
+        "end_time": "1.3",
+        "alternatives": [{ "confidence": "1.0", "content": "in" }],
+        "type": "pronunciation"
+      },
+      {
+        "start_time": "1.3",
+        "end_time": "1.46",
+        "alternatives": [{ "confidence": "1.0", "content": "this" }],
+        "type": "pronunciation"
+      },
+      {
+        "start_time": "1.46",
+        "end_time": "1.73",
+        "alternatives": [{ "confidence": "1.0", "content": "video" }],
+        "type": "pronunciation"
+      },
+      {
+        "alternatives": [{ "confidence": "0.0", "content": "," }],
+        "type": "punctuation"
+      },
+      {
+        "start_time": "1.73",
+        "end_time": "1.83",
+        "alternatives": [{ "confidence": "1.0", "content": "we're" }],
+        "type": "pronunciation"
+      },
+      {
+        "start_time": "1.83",
+        "end_time": "1.99",
+        "alternatives": [{ "confidence": "0.6105", "content": "gonna" }],
+        "type": "pronunciation"
+      },
+      {
+        "start_time": "1.99",
+        "end_time": "2.19",
+        "alternatives": [{ "confidence": "1.0", "content": "talk" }],
+        "type": "pronunciation"
+      },
+      {
+        "start_time": "2.19",
+        "end_time": "2.53",
+        "alternatives": [{ "confidence": "1.0", "content": "about" }],
+        "type": "pronunciation"
+      },
+      {
+        "start_time": "2.54",
+        "end_time": "3.6",
+        "alternatives": [{ "confidence": "0.9974", "content": "celery" }],
+        "type": "pronunciation"
+      },
+      {
+        "alternatives": [{ "confidence": "0.0", "content": "." }],
+        "type": "punctuation"
+      }      
+    ]
+  }
+}

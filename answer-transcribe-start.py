@@ -9,19 +9,16 @@ import boto3
 import tempfile
 import os
 import logger
-import transcribe
 from media_tools import video_to_audio, has_audio
 from api import (
-    AnswerUpdateRequest,
     UpdateTaskStatusRequest,
     fetch_question_name,
     upload_task_status_update,
-    upload_answer_and_task_status_update,
     fetch_task,
 )
 
 
-log = logger.get_logger("answer-transcribe-handler")
+log = logger.get_logger("answer-transcribe-start-handler")
 
 
 if os.environ.get("IS_SENTRY_ENABLED", "") == "true":
@@ -48,9 +45,13 @@ def _require_env(n: str) -> str:
     return env_val
 
 
+aws_region = os.environ.get('AWS_REGION','us-east-1')
 s3_bucket = _require_env("S3_STATIC_ARN").split(":")[-1]
 log.info("using s3 bucket %s", s3_bucket)
+input_bucket = _require_env("TRANSCRIBE_INPUT_BUCKET")
+output_bucket = _require_env("TRANSCRIBE_OUTPUT_BUCKET")
 s3 = boto3.client("s3")
+transcribe = boto3.client("transcribe", region_name=aws_region)
 
 
 def is_idle_question(question_id: str) -> bool:
@@ -58,62 +59,36 @@ def is_idle_question(question_id: str) -> bool:
     return name == "_IDLE_"
 
 
-def transcribe_video(mentor, question, task_id, video_file, s3_path):
-    transcript = ""
-    subtitles = ""
+def transcribe_video(mentor, question, task_id, video_file):
     if not has_audio(video_file):
         log.warn('video file does not contain any audio streams')
         # continue to overwrite any existing previous transcript
     else:
         audio_file = video_to_audio(video_file) # fails if no audio stream exists
         log.info("transcribing %s", audio_file)
-        transcription_service = transcribe.init_transcription_service()
-        transcribe_result = transcription_service.transcribe(
-            [transcribe.TranscribeJobRequest(sourceFile=audio_file, generateSubtitles=True)]
+      
+        input_s3_path = f"{mentor}/{question}/${task_id}/answer.mp3"
+        s3.upload_file(
+            audio_file,
+            input_bucket,
+            input_s3_path,
+            ExtraArgs={"ContentType": "audio/mp3"},
         )
-        job_result = transcribe_result.first()
-        log.info("%s transcribed", audio_file)
-        log.debug("%s", job_result)
-        transcript = job_result.transcript if job_result else ""
-        subtitles = job_result.subtitles if job_result else ""
-
-    media = []
-    if subtitles:
-        vtt_file = os.path.join(os.path.dirname(video_file), "en.vtt")
-        with open(vtt_file, "w") as f:
-            f.write(subtitles)
-            s3.upload_file(
-                vtt_file,
-                s3_bucket,
-                f"{s3_path}/en.vtt",
-                ExtraArgs={"ContentType": "text/vtt"},
-            )
-        media = [
-            {
-                "type": "subtitles",
-                "tag": "en",
-                "url": f"{s3_path}/en.vtt",
+        job = transcribe.start_transcription_job(
+            TranscriptionJobName=f"{mentor}_{question}_{task_id}",
+            LanguageCode="en-US",
+            Media={
+                "MediaFileUri": f"https://s3.{aws_region}.amazonaws.com/{input_bucket}/{input_s3_path}"
+            },
+            MediaFormat="mp3",
+            OutputBucketName=output_bucket,
+            OutputKey=f"{mentor}/{question}/{task_id}/transcribe.json",
+            Subtitles={
+                "Formats":["vtt"]
             }
-        ]
-
-    upload_answer_and_task_status_update(
-        AnswerUpdateRequest(
-            mentor=mentor,
-            question=question,
-            transcript=transcript,
-            media=media,
-            has_edited_transcript=False,
-        ),
-        UpdateTaskStatusRequest(
-            mentor=mentor,
-            question=question,
-            transcript=transcript,
-            task_id=task_id,
-            new_status="DONE",
-            media=media,
-        ),
-    )
-
+        )
+        log.info(job)
+# {'TranscriptionJob': {'TranscriptionJobName': '61ef5df326c18b5437c52612_607766dec525ba87bf68e79b_f1163c07-bc9a-432c-8829-1861f0a5a7c6', 'TranscriptionJobStatus': 'IN_PROGRESS', 'LanguageCode': 'en-US', 'MediaFormat': 'mp3', 'Media': {'MediaFileUri': 'https://s3.us-east-1.amazonaws.com/mentorpal-upload-sm-transcribe-input-dev/61ef5df326c18b5437c52612/607766dec525ba87bf68e79b/$f1163c07-bc9a-432c-8829-1861f0a5a7c6/answer.mp3'}, 'StartTime': datetime.datetime(2022, 2, 2, 14, 46, 14, 649000, tzinfo=tzlocal()), 'CreationTime': datetime.datetime(2022, 2, 2, 14, 46, 14, 626000, tzinfo=tzlocal()), 'Subtitles': {'Formats': ['vtt']}}, 'ResponseMetadata': {'RequestId': 'a845ff03-f074-4ef4-9cc5-456c82569c63', 'HTTPStatusCode': 200, 'HTTPHeaders': {'content-type': 'application/x-amz-json-1.1', 'date': 'Wed, 02 Feb 2022 13:46:14 GMT', 'x-amzn-requestid': 'a845ff03-f074-4ef4-9cc5-456c82569c63', 'content-length': '511', 'connection': 'keep-alive'}, 'RetryAttempts': 0}}
 
 def fetch_from_graphql(request, task):
     upload_task = fetch_task(request["mentor"], request["question"])
@@ -169,7 +144,6 @@ def process_task(request, task):
     with tempfile.TemporaryDirectory() as work_dir:
         work_file = os.path.join(work_dir, "original.mp4")
         s3.download_file(s3_bucket, request["video"], work_file)
-        s3_path = os.path.dirname(request["video"])  # same 'folder' as original file
         log.info("%s downloaded to %s", request["video"], work_dir)
 
         transcribe_video(
@@ -177,7 +151,6 @@ def process_task(request, task):
             request["question"],
             task["task_id"],
             work_file,
-            s3_path,
         )
 
 
@@ -204,3 +177,9 @@ def handler(event, context):
                 )
             )
             raise x
+
+# for local debugging:
+# if __name__ == '__main__':
+#     with open('./__events__/answer-event.json.dist') as f:
+#         event = json.loads(f.read())
+#         handler(event, {})

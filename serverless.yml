@@ -29,9 +29,6 @@ custom:
       S3_STATIC_ARN: ${ssm:/mentorpal/v2/s3_static_arn}
       GRAPHQL_ENDPOINT: 'https://v2.mentorpal.org/graphql'
       API_SECRET: '${ssm:/mentorpal/v2/shared/api_secret}'
-      TRANSCRIBE_AWS_S3_BUCKET_SOURCE: mentorpal-v2-mentorpal-transcribe-uploads
-      TRANSCRIBE_AWS_SECRET_ACCESS_KEY: ${ssm:/mentorpal/v2/transcribe/secret_key}
-      TRANSCRIBE_AWS_ACCESS_KEY_ID: ${ssm:/mentorpal/v2/transcribe/access_key}
       ALERT_SNS_ARN: ${ssm:/mentorpal/v2/shared/sns_alert_topic_arn}
     qa:
       # TODO
@@ -96,6 +93,8 @@ provider:
     API_SECRET: ${self:custom.stages.${self:provider.stage}.API_SECRET}
     IS_SENTRY_ENABLED: ${self:custom.stages.${self:provider.stage}.IS_SENTRY_ENABLED}
     SENTRY_DSN_MENTOR_UPLOAD: '${ssm:/mentorpal/upload/sentry_dsn}'
+    TRANSCRIBE_INPUT_BUCKET: '${self:service}-transcribe-input-${self:provider.stage}'
+    TRANSCRIBE_OUTPUT_BUCKET: '${self:service}-transcribe-output-${self:provider.stage}'
 
   # iam permissions for all lambda functions
   iam:
@@ -106,10 +105,14 @@ provider:
             - "s3:PutObject"
             - "s3:GetObject"
           Resource:
-            Fn::Join:
-              - "/"
-              - - ${self:custom.stages.${self:provider.stage}.S3_STATIC_ARN}
-                - "*"
+            - '${self:custom.stages.${self:provider.stage}.S3_STATIC_ARN}/*'
+            - 'arn:aws:s3:::${self:provider.environment.TRANSCRIBE_INPUT_BUCKET}/*'
+            - 'arn:aws:s3:::${self:provider.environment.TRANSCRIBE_OUTPUT_BUCKET}/*'
+        - Effect: Allow
+          Action:
+          - "transcribe:StartTranscriptionJob"
+          Resource: "*"
+
 
 package:
 #  individually: false
@@ -166,19 +169,13 @@ functions:
       # see https://www.serverless.com/framework/docs/providers/aws/guide/layers#using-your-layers
       - { Ref: BinariesLambdaLayer }
 
-  answer-transcribe:
-    handler: answer-transcribe.handler
+  answer-transcribe-start:
+    handler: answer-transcribe-start.handler
     memorySize: 1024 # need to extract audio
-    timeout: 120
-    # https://docs.aws.amazon.com/lambda/latest/operatorguide/reserved-concurrency.html
-    reservedConcurrency: 5 # workaround for https://github.com/ICTLearningSciences/py-transcribe-aws/issues/12
+    timeout: 30
     environment:
-      TRANSCRIBE_MODULE_PATH: transcribe_aws
-      TRANSCRIBE_AWS_REGION: ${self:provider.region}
-      TRANSCRIBE_AWS_S3_BUCKET_SOURCE: ${self:custom.stages.${self:provider.stage}.TRANSCRIBE_AWS_S3_BUCKET_SOURCE}
-      # sensitive data, better to just add it to lambdas that really need it:
-      TRANSCRIBE_AWS_SECRET_ACCESS_KEY: ${self:custom.stages.${self:provider.stage}.TRANSCRIBE_AWS_SECRET_ACCESS_KEY}
-      TRANSCRIBE_AWS_ACCESS_KEY_ID: ${self:custom.stages.${self:provider.stage}.TRANSCRIBE_AWS_ACCESS_KEY_ID}
+      TRANSCRIBE_INPUT_BUCKET: ${self:provider.environment.TRANSCRIBE_INPUT_BUCKET}
+      TRANSCRIBE_OUTPUT_BUCKET: ${self:provider.environment.TRANSCRIBE_OUTPUT_BUCKET}
     events:
       - sqs:
           arn:
@@ -188,6 +185,19 @@ functions:
       # binaries gets named "Binaries"+"LambdaLayer":
       # see https://www.serverless.com/framework/docs/providers/aws/guide/layers#using-your-layers
       - { Ref: BinariesLambdaLayer }
+
+  answer-transcribe-collect:
+    handler: answer-transcribe-collect.handler
+    memorySize: 512
+    timeout: 30
+    events:
+      - s3:
+          bucket: ${self:provider.environment.TRANSCRIBE_OUTPUT_BUCKET}
+          event: s3:ObjectCreated:*
+          existing: true # otherwise sls will try to create it twice and fail
+          rules:
+            - prefix: 'transcribe.'
+            # only one prefix or suffix is allowed and we have .json and .vtt
 
 resources:
   Conditions:
@@ -310,6 +320,26 @@ resources:
           - Ref: TranscodeWebQueue
           - Ref: TranscodeMobileQueue
           - Ref: TranscribeQueue
+
+    TrascribeInputBucket:
+      Type: AWS::S3::Bucket
+      Properties:
+        BucketName: ${self:provider.environment.TRANSCRIBE_INPUT_BUCKET}
+        LifecycleConfiguration:
+          Rules:
+          - Id: DeleteInputFileAfter7Days
+            Status: Enabled
+            ExpirationInDays: 7
+
+    TrascribeOutputBucket:
+      Type: AWS::S3::Bucket
+      Properties:
+        BucketName: ${self:provider.environment.TRANSCRIBE_OUTPUT_BUCKET}
+        LifecycleConfiguration:
+          Rules:
+          - Id: DeleteResultAfter7Days
+            Status: Enabled
+            ExpirationInDays: 7
 
     ProcessUploadSnsTopicArn:
       Type: AWS::SSM::Parameter

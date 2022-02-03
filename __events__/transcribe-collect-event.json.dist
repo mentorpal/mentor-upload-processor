@@ -1,0 +1,32 @@
+{
+  "Records": [
+    {
+      "eventVersion": "2.1",
+      "eventSource": "aws:s3",
+      "awsRegion": "us-east-1",
+      "eventTime": "2022-02-02T13:46:47.167Z",
+      "eventName": "ObjectCreated:Put",
+      "userIdentity": { "principalId": "AWS:redacted" },
+      "requestParameters": { "sourceIPAddress": "10.0.117.49" },
+      "responseElements": {
+        "x-amz-request-id": "AZCAYSA76B7VH3MJ",
+        "x-amz-id-2": "wstZA+MeGwSUf0TY3sOKycXzvHQt+RrU46z6rNSaFgHf+dthD09qsGMEESBPTUn0AZBt2IMn1kKo9yXEq8ViKAccYCxtv95E"
+      },
+      "s3": {
+        "s3SchemaVersion": "1.0",
+        "configurationId": "mentorpal-upload-sm-dev-answer-transcribe-collect-68a737133cefb25bff959852b8f04754",
+        "bucket": {
+          "name": "mentorpal-upload-sm-transcribe-output-dev",
+          "ownerIdentity": { "principalId": "AWC951DBFLSWY" },
+          "arn": "arn:aws:s3:::mentorpal-upload-sm-transcribe-output-dev"
+        },
+        "object": {
+          "key": "61ef5df326c18b5437c52612/607766dec525ba87bf68e79b/f1163c07-bc9a-432c-8829-1861f0a5a7c6/transcribe.json",
+          "size": 34706,
+          "eTag": "274dc3780ceb2172b8e9df71cc211364",
+          "sequencer": "0061FA8B4716F4BB10"
+        }
+      }
+    }
+  ]
+}
