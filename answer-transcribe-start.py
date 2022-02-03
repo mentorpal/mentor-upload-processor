@@ -9,6 +9,7 @@ import boto3
 import tempfile
 import os
 import logger
+import uuid
 from media_tools import video_to_audio, has_audio
 from api import (
     UpdateTaskStatusRequest,
@@ -75,7 +76,7 @@ def transcribe_video(mentor, question, task_id, video_file):
             ExtraArgs={"ContentType": "audio/mp3"},
         )
         job = transcribe.start_transcription_job(
-            TranscriptionJobName=f"{mentor}_{question}_{task_id}",
+            TranscriptionJobName=f"{mentor}_{question}_{task_id}_{uuid.uuid4()}", # make sure job id is unique
             LanguageCode="en-US",
             Media={
                 "MediaFileUri": f"https://s3.{aws_region}.amazonaws.com/{input_bucket}/{input_s3_path}"
@@ -85,10 +86,16 @@ def transcribe_video(mentor, question, task_id, video_file):
             OutputKey=f"{mentor}/{question}/{task_id}/transcribe.json",
             Subtitles={
                 "Formats":["vtt"]
-            }
+            },
+            Settings={
+                'ShowSpeakerLabels': False,
+                'ChannelIdentification': False, # process only one audio channel
+                'ShowAlternatives': False
+            },
+
         )
         log.info(job)
-# {'TranscriptionJob': {'TranscriptionJobName': '61ef5df326c18b5437c52612_607766dec525ba87bf68e79b_f1163c07-bc9a-432c-8829-1861f0a5a7c6', 'TranscriptionJobStatus': 'IN_PROGRESS', 'LanguageCode': 'en-US', 'MediaFormat': 'mp3', 'Media': {'MediaFileUri': 'https://s3.us-east-1.amazonaws.com/mentorpal-upload-sm-transcribe-input-dev/61ef5df326c18b5437c52612/607766dec525ba87bf68e79b/$f1163c07-bc9a-432c-8829-1861f0a5a7c6/answer.mp3'}, 'StartTime': datetime.datetime(2022, 2, 2, 14, 46, 14, 649000, tzinfo=tzlocal()), 'CreationTime': datetime.datetime(2022, 2, 2, 14, 46, 14, 626000, tzinfo=tzlocal()), 'Subtitles': {'Formats': ['vtt']}}, 'ResponseMetadata': {'RequestId': 'a845ff03-f074-4ef4-9cc5-456c82569c63', 'HTTPStatusCode': 200, 'HTTPHeaders': {'content-type': 'application/x-amz-json-1.1', 'date': 'Wed, 02 Feb 2022 13:46:14 GMT', 'x-amzn-requestid': 'a845ff03-f074-4ef4-9cc5-456c82569c63', 'content-length': '511', 'connection': 'keep-alive'}, 'RetryAttempts': 0}}
+
 
 def fetch_from_graphql(request, task):
     upload_task = fetch_task(request["mentor"], request["question"])
@@ -178,7 +185,7 @@ def handler(event, context):
             )
             raise x
 
-# for local debugging:
+# # for local debugging:
 # if __name__ == '__main__':
 #     with open('./__events__/answer-event.json.dist') as f:
 #         event = json.loads(f.read())
