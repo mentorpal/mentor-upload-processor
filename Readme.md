@@ -2,7 +2,7 @@
 
 This is a serverless service that can transcode and transcribe mentorpal answer uploads:
 
-[architecture.png](./uploader-queues.drawio.png)
+![high l evel architecture](./uploader-queues.drawio.png)
 
 # Deployment
 
