@@ -1,5 +1,5 @@
 #
-# This software is Copyright ©️ 2020 The University of Southern California. All Rights Reserved. 
+# This software is Copyright ©️ 2020 The University of Southern California. All Rights Reserved.
 # Permission to use, copy, modify, and distribute this software and its documentation for educational, research and non-profit purposes, without fee, and without a written agreement is hereby granted, provided that the above copyright notice and subject to the full license file found in the root of this software deliverable. Permission to make commercial use of this software may be obtained by contacting:  USC Stevens Center for Innovation University of Southern California 1150 S. Olive Street, Suite 2300, Los Angeles, CA 90115, USA Email: accounting@stevens.usc.edu
 #
 # The full terms of this copyright and license should always be found in the root directory of this software deliverable as "license.txt" and if these terms are not found with this software, please contact the USC Stevens Center for the full license.
@@ -21,7 +21,7 @@ from util import s3_bucket, require_env, load_sentry, fetch_from_graphql
 load_sentry()
 log = logger.get_logger("answer-transcribe-start-handler")
 
-aws_region = os.environ.get('AWS_REGION','us-east-1')
+aws_region = os.environ.get("AWS_REGION", "us-east-1")
 input_bucket = require_env("TRANSCRIBE_INPUT_BUCKET")
 output_bucket = require_env("TRANSCRIBE_OUTPUT_BUCKET")
 s3 = boto3.client("s3")
@@ -34,13 +34,13 @@ def is_idle_question(question_id: str) -> bool:
 
 
 def transcribe_video(mentor, question, task_id, video_file):
-    if not has_audio(video_file): # this does not work on mac :/
-        log.warn('video file does not contain any audio streams')
+    if not has_audio(video_file):  # this does not work on mac :/
+        log.warn("video file does not contain any audio streams")
         # continue to overwrite any existing previous transcript
     else:
-        audio_file = video_to_audio(video_file) # fails if no audio stream exists
+        audio_file = video_to_audio(video_file)  # fails if no audio stream exists
         log.info("transcribing %s", audio_file)
-      
+
         input_s3_path = f"{mentor}/{question}/${task_id}/answer.mp3"
         s3.upload_file(
             audio_file,
@@ -49,7 +49,7 @@ def transcribe_video(mentor, question, task_id, video_file):
             ExtraArgs={"ContentType": "audio/mp3"},
         )
         job = transcribe.start_transcription_job(
-            TranscriptionJobName=f"{mentor}_{question}_{task_id}_{uuid.uuid4()}", # make sure job id is unique
+            TranscriptionJobName=f"{mentor}_{question}_{task_id}_{uuid.uuid4()}",  # make sure job id is unique
             LanguageCode="en-US",
             Media={
                 "MediaFileUri": f"https://s3.{aws_region}.amazonaws.com/{input_bucket}/{input_s3_path}"
@@ -57,21 +57,20 @@ def transcribe_video(mentor, question, task_id, video_file):
             MediaFormat="mp3",
             OutputBucketName=output_bucket,
             OutputKey=f"{mentor}/{question}/{task_id}/transcribe.json",
-            Subtitles={
-                "Formats":["vtt"]
-            },
+            Subtitles={"Formats": ["vtt"]},
             Settings={
-                'ShowSpeakerLabels': False,
-                'ChannelIdentification': False, # process only one audio channel
-                'ShowAlternatives': False
+                "ShowSpeakerLabels": False,
+                "ChannelIdentification": False,  # process only one audio channel
+                "ShowAlternatives": False,
             },
-
         )
         log.info(job)
 
 
 def process_task(request, task):
-    stored_task = fetch_from_graphql(request["mentor"], request["question"], task["task_id"])
+    stored_task = fetch_from_graphql(
+        request["mentor"], request["question"], task["task_id"]
+    )
     if not stored_task:
         log.warn("task not found, skipping transcription")
         return
@@ -138,6 +137,7 @@ def handler(event, context):
                 )
             )
             raise x
+
 
 # # for local debugging:
 # if __name__ == '__main__':
