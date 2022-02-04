@@ -38,9 +38,6 @@ custom:
       IS_SENTRY_ENABLED: true
       GRAPHQL_ENDPOINT: 'https://v2.mentorpal.org/graphql'
       API_SECRET: '${ssm:/mentorpal/v2/shared/api_secret}'
-      TRANSCRIBE_AWS_S3_BUCKET_SOURCE: mentorpal-v2-mentorpal-transcribe-uploads
-      TRANSCRIBE_AWS_SECRET_ACCESS_KEY: ${ssm:/mentorpal/v2/transcribe/secret_key}
-      TRANSCRIBE_AWS_ACCESS_KEY_ID: ${ssm:/mentorpal/v2/transcribe/access_key}
       ALERT_SNS_ARN: ${ssm:/mentorpal/v2/shared/sns_alert_topic_arn}
     prod:
       LOG_LEVEL: 'info'
