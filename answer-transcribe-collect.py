@@ -63,7 +63,7 @@ def process_event(record):
         s3.upload_file(
             vtt_file,
             s3_bucket,
-            f"{s3_path}/en.vtt",  # same path, different bucket!
+            f"{mentor}/{question}/en.vtt",
             ExtraArgs={"ContentType": "text/vtt"},
         )
         media = [
