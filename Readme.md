@@ -80,8 +80,8 @@ To debug in VS Code, use this config:
 
 # Tech debt
 
-- [] cicd pipeline
-- [] sls offline
-- [] xray
-- [] integration tests
-- [] put all *.py files into src/app
+- [ ] cicd pipeline
+- [ ] sls offline
+- [ ] xray
+- [ ] integration tests
+- [ ] put all *.py files into src/app
