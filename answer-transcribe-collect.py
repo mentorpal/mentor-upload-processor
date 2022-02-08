@@ -70,7 +70,7 @@ def process_event(record):
             {
                 "type": "subtitles",
                 "tag": "en",
-                "url": f"{s3_path}/en.vtt",
+                "url": f"{mentor}/{question}/en.vtt",
             }
         ]
 
