@@ -63,14 +63,14 @@ def process_event(record):
         s3.upload_file(
             vtt_file,
             s3_bucket,
-            f"{mentor}/{question}/en.vtt",
+            f"videos/{mentor}/{question}/en.vtt",
             ExtraArgs={"ContentType": "text/vtt"},
         )
         media = [
             {
                 "type": "subtitles",
                 "tag": "en",
-                "url": f"{mentor}/{question}/en.vtt",
+                "url": f"videos/{mentor}/{question}/en.vtt",
             }
         ]
 
