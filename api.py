@@ -151,9 +151,10 @@ def upload_answer_and_task_status_req_gql(
     variables["questionId"] = answer_req.question
 
     variables["answer"] = {
-        "transcript": answer_req.transcript,
         "media": answer_req.media,
     }
+    if answer_req.transcript:
+        variables["answer"]["transcript"] = answer_req.transcript
     if answer_req.has_edited_transcript is not None:
         variables["answer"]["hasEditedTranscript"] = answer_req.has_edited_transcript
 
