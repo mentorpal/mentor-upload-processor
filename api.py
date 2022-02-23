@@ -32,8 +32,8 @@ class Media:
 class AnswerUpdateRequest:
     mentor: str
     question: str
-    transcript: str
     media: List[Media]
+    transcript: str = None
     has_edited_transcript: bool = None
 
 
