@@ -324,7 +324,7 @@ resources:
           - Ref: TranscodeMobileQueue
           - Ref: TranscribeQueue
 
-    TrascribeInputBucket:
+    TranscribeInputBucket:
       Type: AWS::S3::Bucket
       Properties:
         BucketName: ${self:provider.environment.TRANSCRIBE_INPUT_BUCKET}
@@ -334,7 +334,7 @@ resources:
             Status: Enabled
             ExpirationInDays: 7
 
-    TrascribeOutputBucket:
+    TranscribeOutputBucket:
       Type: AWS::S3::Bucket
       Properties:
         BucketName: ${self:provider.environment.TRANSCRIBE_OUTPUT_BUCKET}
