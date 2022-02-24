@@ -76,7 +76,6 @@ def process_task(request, task):
             AnswerUpdateRequest(
                 mentor=request["mentor"],
                 question=request["question"],
-                transcript="",
                 media=media,
             ),
             UpdateTaskStatusRequest(
