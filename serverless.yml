@@ -26,27 +26,28 @@ custom:
       LOG_LEVEL: 'trace'
       IS_SENTRY_ENABLED: false
       # v2 is hardcoded, we could use fallback stages instead
-      S3_STATIC_ARN: ${ssm:/mentorpal/v2/s3_static_arn}
+      # hack: qa and prod are in different regions so deploy fails because
+      # it cannot resolve other env variables from ssm.
+      # That's why we provide an empty default value '', but this
+      # in effect prevent sls from catching errors (missing variable in ssm)!
+      S3_STATIC_ARN: ${ssm:/mentorpal/v2/s3_static_arn, ''}
       GRAPHQL_ENDPOINT: 'https://v2.mentorpal.org/graphql'
-      API_SECRET: '${ssm:/mentorpal/v2/shared/api_secret}'
-      ALERT_SNS_ARN: ${ssm:/mentorpal/v2/shared/sns_alert_topic_arn}
+      API_SECRET: ${ssm:/mentorpal/v2/shared/api_secret, ''}
+      ALERT_SNS_ARN: ${ssm:/mentorpal/v2/shared/sns_alert_topic_arn, ''}
     qa:
-      # TODO
-      # S3_STATIC_ARN: ${ssm:/mentorpal/${self:provider.stage}/s3_static_arn}
-      S3_STATIC_ARN: ${ssm:/mentorpal/v2/s3_static_arn}
+      S3_STATIC_ARN: ${ssm:/mentorpal/v2/s3_static_arn, ''}
       LOG_LEVEL: 'debug'
       IS_SENTRY_ENABLED: true
       GRAPHQL_ENDPOINT: 'https://v2.mentorpal.org/graphql'
-      API_SECRET: '${ssm:/mentorpal/v2/shared/api_secret}'
-      ALERT_SNS_ARN: ${ssm:/mentorpal/v2/shared/sns_alert_topic_arn}
+      API_SECRET: ${ssm:/mentorpal/v2/shared/api_secret, ''}
+      ALERT_SNS_ARN: ${ssm:/mentorpal/v2/shared/sns_alert_topic_arn, ''}
     prod:
       LOG_LEVEL: 'info'
       IS_SENTRY_ENABLED: true
       GRAPHQL_ENDPOINT: 'https://careerfair.mentorpal.org/graphql'
-      # API_SECRET: '${ssm:/mentorpal/careerfair/shared/api_secret}'
-      # TODO
-      # S3_STATIC_ARN: ${ssm:/mentorpal/${self:provider.stage}/s3_static_arn}
-      # ALERT_SNS_ARN: ${ssm:/mentorpal/careerfair/shared/sns_alert_topic_arn}
+      S3_STATIC_ARN: ${ssm:/mentorpal/cf/s3_static_arn, ''}
+      API_SECRET: ${ssm:/mentorpal/cf/shared/api_secret, ''}
+      ALERT_SNS_ARN: ${ssm:/mentorpal/cf/shared/sns_alert_topic_arn, ''}
 
   # serverless-layers requires a deployment bucket to be created before deploying this stack
   serverless-layers:
@@ -78,7 +79,7 @@ provider:
   tracing:
     lambda: true
   logRetentionInDays: 30      
-  region: us-east-1
+  region: ${opt:region, 'us-east-1'}
   architecture: x86_64 # because of the static ffmpeg binaries and python dependencies
   environment:
     # IS_OFFLINE: ${env:IS_OFFLINE}

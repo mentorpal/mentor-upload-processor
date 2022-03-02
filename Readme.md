@@ -9,7 +9,7 @@ This is a serverless service that can transcode and transcribe mentorpal answer 
 There's no cicd pipeline yet. To deploy manually first run once `npm ci` to get all the tools and then:
 
 ```
-sls deploy -s <stage>
+sls deploy -s <stage> --region <region>
 # where stage is one of dev|qa|prod
 ```
 
