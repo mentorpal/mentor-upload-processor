@@ -120,19 +120,19 @@ def handler(event, context):
         body = json.loads(str(record["body"]))
         request = json.loads(str(body["Message"]))["request"]
         task_list = request["task_list"]
-        task = next(filter(lambda t: t["task_name"] == "transcribing", task_list))
-        if not task:
+        tasks = list(filter(lambda t: t["task_name"] == "transcribing", task_list))
+        if not tasks:
             log.warning("transcribe task not requested")
             return
 
         try:
-            process_task(request, task)
+            process_task(request, tasks[0])
         except Exception as x:
             upload_task_status_update(
                 UpdateTaskStatusRequest(
                     mentor=request["mentor"],
                     question=request["question"],
-                    task_id=task["task_id"],
+                    task_id=tasks[0]["task_id"],
                     new_status="FAILED",
                 )
             )
