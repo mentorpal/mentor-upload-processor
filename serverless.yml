@@ -142,7 +142,7 @@ functions:
   answer-transcode-web:
     handler: answer-transcode-web.handler
     memorySize: 8192 # 5min video takes 100sec with 2GB, 50sec with 4GB, 30sec with 8GB
-    timeout: 60
+    timeout: 900 # give max time to make sure it gets transcoded
     events:
       - sqs:
           arn:
@@ -156,7 +156,7 @@ functions:
   answer-transcode-mobile:
     handler: answer-transcode-mobile.handler
     memorySize: 8192 # 5min video takes 100sec with 2GB, 50sec with 4GB, 30sec with 8GB
-    timeout: 60
+    timeout: 900
     events:
       - sqs:
           arn:
