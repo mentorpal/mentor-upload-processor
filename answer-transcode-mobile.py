@@ -105,6 +105,7 @@ def handler(event, context):
         try:
             process_task(request, tasks[0])
         except Exception as x:
+            log.error(x)
             upload_task_status_update(
                 UpdateTaskStatusRequest(
                     mentor=request["mentor"],

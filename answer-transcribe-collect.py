@@ -99,6 +99,7 @@ def handler(event, context):
         try:
             process_event(record)
         except Exception as x:
+            log.error(x)
             key = record["s3"]["object"]["key"]
             s3_path = os.path.dirname(key)
             [mentor, question, task_id] = s3_path.split("/")
