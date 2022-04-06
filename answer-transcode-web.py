@@ -94,7 +94,7 @@ def handler(event, context):
         body = json.loads(str(record["body"]))
         request = json.loads(str(body["Message"]))["request"]
         task_list = request["task_list"]
-        tasks = next(filter(lambda t: t["task_name"] == "transcoding-web", task_list))
+        tasks = list(filter(lambda t: t["task_name"] == "transcoding-web", task_list))
         if not tasks:
             log.warning("no transcoding-web task requested")
             return
@@ -102,6 +102,7 @@ def handler(event, context):
         try:
             process_task(request, tasks[0])
         except Exception as x:
+            log.error(x)
             upload_task_status_update(
                 UpdateTaskStatusRequest(
                     mentor=request["mentor"],
