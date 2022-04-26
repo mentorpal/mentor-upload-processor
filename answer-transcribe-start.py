@@ -85,8 +85,7 @@ def process_task(request, task):
             UpdateTaskStatusRequest(
                 mentor=request["mentor"],
                 question=request["question"],
-                task_id=task["task_id"],
-                new_status="DONE",
+                transcribe_task={"status":"DONE"}
             )
         )
         return
@@ -95,8 +94,7 @@ def process_task(request, task):
         UpdateTaskStatusRequest(
             mentor=request["mentor"],
             question=request["question"],
-            task_id=task["task_id"],
-            new_status="IN_PROGRESS",
+            transcribe_task={"status":"IN_PROGRESS"}
         )
     )
 
@@ -133,8 +131,7 @@ def handler(event, context):
                 UpdateTaskStatusRequest(
                     mentor=request["mentor"],
                     question=request["question"],
-                    task_id=tasks[0]["task_id"],
-                    new_status="FAILED",
+                    transcribe_task={"status":"FAILED"}
                 )
             )
             raise x

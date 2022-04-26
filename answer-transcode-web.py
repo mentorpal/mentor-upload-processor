@@ -60,30 +60,27 @@ def process_task(request, task):
             UpdateTaskStatusRequest(
                 mentor=request["mentor"],
                 question=request["question"],
-                task_id=task["task_id"],
-                new_status="IN_PROGRESS",
+                transcode_web_task={"status":"IN_PROGRESS"},
             )
         )
         transcode_web(work_file, s3_path)
-        media = [
-            {
+        web_media = {
                 "type": "video",
                 "tag": "web",
                 "url": f"{s3_path}/web.mp4",
             }
-        ]
+        
         upload_answer_and_task_status_update(
             AnswerUpdateRequest(
                 mentor=request["mentor"],
                 question=request["question"],
-                media=media,
+                web_media=web_media,
             ),
             UpdateTaskStatusRequest(
                 mentor=request["mentor"],
                 question=request["question"],
-                task_id=task["task_id"],
-                new_status="DONE",
-                media=media,
+                transcode_web_task={"status":"DONE"},
+                web_media=web_media,
             ),
         )
 
@@ -107,8 +104,7 @@ def handler(event, context):
                 UpdateTaskStatusRequest(
                     mentor=request["mentor"],
                     question=request["question"],
-                    task_id=tasks[0]["task_id"],
-                    new_status="FAILED",
+                    transcode_web_task={"status":"FAILED"}
                 )
             )
             raise x
