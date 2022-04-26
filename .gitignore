@@ -27,3 +27,5 @@ models
 node_modules
 .serverless
 scripts
+.terraform
+secret.tfvars

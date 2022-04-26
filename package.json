@@ -10,8 +10,8 @@
   },
   "scripts": {
     "deploy:dev": "sls deploy -s dev",
-    "deploy:qa": "sls deploy -s qa",
-    "deploy:prod": "sls deploy -s prod"
+    "deploy:qa": "sls deploy -s qa --region us-east-1",
+    "deploy:prod": "sls deploy -s prod --region us-west-2"
   },
   "repository": {
     "type": "git",
