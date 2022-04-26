@@ -61,7 +61,7 @@ To debug in VS Code, use this config:
       "justMyCode": false,
       "env": {
         "S3_STATIC_ARN": "arn:aws:s3:::static-mentorpal-v2-mentorpal-origin",
-        "GRAPHQL_ENDPOINT": "https://v2.mentorpal.org/graphql",
+        "GRAPHQL_ENDPOINT": "http://127.0.0.1:3001/graphql",
         "FFMPEG_EXECUTABLE": "ffmpeg",
         "API_SECRET": "secret",
         "STATIC_AWS_ACCESS_KEY_ID": "secret",
