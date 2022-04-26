@@ -4,9 +4,21 @@ This is a serverless service that can transcode and transcribe mentorpal answer 
 
 ![high l evel architecture](./uploader-queues.drawio.png)
 
-# Deployment
+# Deployment instructions
 
-There's no cicd pipeline yet. To deploy manually first run once `npm ci` to get all the tools and then:
+## Setting up a cicd pipeline
+
+Go to the ./infrastructure folder, create secret.tfvars file and then run:
+```
+aws s3api create-bucket --bucket mentorpal-upload-processor-tf-state-us-east-1 --region us-east-1
+terraform init
+terraform plan -lock=false -var-file=secret.tfvars --out=cicd
+terraform apply -lock=false "cicd"
+```
+
+## Manual deploy
+To deploy manually appropriate credentials are required.
+First run once `npm ci` to get all the tools and then:
 
 ```
 sls deploy -s <stage> --region <region>
@@ -61,7 +73,7 @@ To debug in VS Code, use this config:
       "justMyCode": false,
       "env": {
         "S3_STATIC_ARN": "arn:aws:s3:::static-mentorpal-v2-mentorpal-origin",
-        "GRAPHQL_ENDPOINT": "https://v2.mentorpal.org/graphql",
+        "GRAPHQL_ENDPOINT": "http://127.0.0.1:3001/graphql",
         "FFMPEG_EXECUTABLE": "ffmpeg",
         "API_SECRET": "secret",
         "STATIC_AWS_ACCESS_KEY_ID": "secret",
@@ -80,8 +92,8 @@ To debug in VS Code, use this config:
 
 # Tech debt
 
-- [ ] cicd pipeline
 - [ ] sls offline
 - [ ] xray
 - [ ] integration tests
 - [ ] put all *.py files into src/app
+- [x] cicd pipeline

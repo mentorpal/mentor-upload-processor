@@ -128,7 +128,7 @@ def convert_upload_task_gql(uploadTask):
 def fetch_task(mentor_id: str, question_id) -> dict:
     headers = {"mentor-graphql-req": "true", "Authorization": f"bearer {get_api_key()}"}
     body = fetch_task_gql(mentor_id, question_id)
-    res = requests.post(get_graphql_endpoint(), json=body, headers=headers)
+    res = requests.post(get_graphql_endpoint(), json=body, headers=headers, verify=False)
     res.raise_for_status()
     tdjson = res.json()
     if "errors" in tdjson:
@@ -139,7 +139,7 @@ def fetch_task(mentor_id: str, question_id) -> dict:
 def fetch_question_name(question_id: str) -> str:
     headers = {"mentor-graphql-req": "true", "Authorization": f"bearer {get_api_key()}"}
     body = fetch_question_name_gql(question_id)
-    res = requests.post(get_graphql_endpoint(), json=body, headers=headers)
+    res = requests.post(get_graphql_endpoint(), json=body, headers=headers, verify=False)
     res.raise_for_status()
     tdjson = res.json()
     if "errors" in tdjson:
@@ -232,7 +232,7 @@ def upload_answer_and_task_status_update(
 ) -> None:
     headers = {"mentor-graphql-req": "true", "Authorization": f"bearer {get_api_key()}"}
     body = upload_answer_and_task_status_req_gql(answer_req, status_req)
-    res = requests.post(get_graphql_endpoint(), json=body, headers=headers)
+    res = requests.post(get_graphql_endpoint(), json=body, headers=headers, verify=False)
     res.raise_for_status()
     tdjson = res.json()
     if "errors" in tdjson:
@@ -242,7 +242,7 @@ def upload_answer_and_task_status_update(
 def upload_task_status_update(req: UpdateTaskStatusRequest) -> None:
     headers = {"mentor-graphql-req": "true", "Authorization": f"bearer {get_api_key()}"}
     body = upload_task_status_req_gql(req)
-    res = requests.post(get_graphql_endpoint(), json=body, headers=headers)
+    res = requests.post(get_graphql_endpoint(), json=body, headers=headers, verify=False)
     res.raise_for_status()
     tdjson = res.json()
     if "errors" in tdjson:

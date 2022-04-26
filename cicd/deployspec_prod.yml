@@ -1,0 +1,25 @@
+version: 0.2
+
+env:
+  variables:
+    SENTRY_ORG: 'usc-ict-ls'
+    SENTRY_PROJECT: 'mentor-uploader'
+
+phases:
+  install:
+    runtime-versions:
+      nodejs: 16
+
+  pre_build:
+    commands:
+      - n 16 # workaround https://github.com/aws/aws-codebuild-docker-images/issues/490  
+    # TODO
+    #   - export SENTRY_RELEASE=${SENTRY_PROJECT}-$(cat .VERSION)
+  build:
+    commands:
+      - echo Deploying stack
+      - npm run deploy:prod
+
+      # TODO
+      # - echo sentry release: ${SENTRY_RELEASE}
+      # - bash sentry-release.sh
