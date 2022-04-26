@@ -41,7 +41,7 @@ def load_sentry():
 def fetch_from_graphql(mentor, question, task_id):
     upload_task = fetch_task(mentor, question)
     if not upload_task:
-        # this can happen if any task_list status is failed and client deletes the task
+        # this can happen if any task status is failed and client deletes the task
         return None
     stored_task = next(
         (x for x in upload_task["taskList"] if x["task_id"] == task_id),

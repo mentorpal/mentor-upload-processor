@@ -93,14 +93,13 @@ def handler(event, context):
     for record in event["Records"]:
         body = json.loads(str(record["body"]))
         request = json.loads(str(body["Message"]))["request"]
-        task_list = request["task_list"]
-        tasks = list(filter(lambda t: t["task_name"] == "transcoding-mobile", task_list))
-        if not tasks[0]:
+        task = request["transcodeMobileTask"] if "transcodeMobileTask" in request else None
+        if not task:
             log.warning("no transcoding-mobile task requested")
             return
 
         try:
-            process_task(request, tasks[0])
+            process_task(request, task)
         except Exception as x:
             log.error(x)
             upload_task_status_update(
