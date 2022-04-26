@@ -13,7 +13,6 @@ phases:
   pre_build:
     commands:
       - n 16 # workaround https://github.com/aws/aws-codebuild-docker-images/issues/490  
-      - pyenv global $PYTHON_38_VERSION
     # TODO
     #   - export SENTRY_RELEASE=${SENTRY_PROJECT}-$(cat .VERSION)
   build:
