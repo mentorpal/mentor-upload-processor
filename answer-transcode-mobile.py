@@ -38,10 +38,10 @@ def transcode_mobile(video_file, s3_path):
     )
 
 
-def process_task(request, task):
+def process_task(request):
     log.info("video to process %s", request["video"])
     stored_task = fetch_from_graphql(
-        request["mentor"], request["question"], task["task_id"]
+        request["mentor"], request["question"], "transcodeMobileTask"
     )
     if not stored_task:
         log.warn("task not found, skipping transcode")
@@ -99,7 +99,7 @@ def handler(event, context):
             return
 
         try:
-            process_task(request, task)
+            process_task(request)
         except Exception as x:
             log.error(x)
             upload_task_status_update(

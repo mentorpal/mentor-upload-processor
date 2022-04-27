@@ -69,7 +69,7 @@ def transcribe_video(mentor, question, task_id, video_file):
 
 def process_task(request, task):
     stored_task = fetch_from_graphql(
-        request["mentor"], request["question"], task["task_id"]
+        request["mentor"], request["question"], "transcribeTask"
     )
     if not stored_task:
         log.warn("task not found, skipping transcription")

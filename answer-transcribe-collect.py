@@ -28,7 +28,7 @@ def process_event(record):
     key = record["s3"]["object"]["key"]
     s3_path = os.path.dirname(key)
     [mentor, question, task_id] = s3_path.split("/")
-    stored_task = fetch_from_graphql(mentor, question, task_id)
+    stored_task = fetch_from_graphql(mentor, question, "transcribeTask")
     if not stored_task:
         log.warn("task not found, skipping")
         return

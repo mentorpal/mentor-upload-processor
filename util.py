@@ -38,20 +38,13 @@ def load_sentry():
         )
 
 
-def fetch_from_graphql(mentor, question, task_id):
+def fetch_from_graphql(mentor, question, task_name):
     upload_task = fetch_task(mentor, question)
     if not upload_task:
         # this can happen if any task status is failed and client deletes the task
         return None
-    stored_task = next(
-        (x for x in upload_task["taskList"] if x["task_id"] == task_id),
-        None,
-    )
+    stored_task = upload_task[task_name] if task_name in upload_task else None
     if stored_task is None:
-        logging.error("task it doesnt match %s %s", task_id, upload_task["taskList"])
-        raise Exception(
-            "task it doesnt match %s %s",
-            task_id,
-            [t["task_id"] for t in upload_task["taskList"]],
-        )
+        logging.error("task does not exist in upload task %s", upload_task)
+        raise Exception("task does not exist in upload task %s", upload_task)
     return stored_task

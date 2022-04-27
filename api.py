@@ -108,22 +108,6 @@ def fetch_task_gql(mentor_id: str, question_id) -> GQLQueryBody:
         },
     }
 
-def convert_upload_task_gql(upload_task):
-    task_list = []
-    if upload_task is None:
-        return {
-            "taskList": task_list
-        }
-    if "transcodeWebTask" in upload_task and upload_task["transcodeWebTask"]:
-        task_list.append(upload_task["transcodeWebTask"])
-    if "transcodeMobileTask" in upload_task and upload_task["transcodeMobileTask"]:
-        task_list.append(upload_task["transcodeMobileTask"])
-    if "transcribeTask" in upload_task and upload_task["transcribeTask"]:
-        task_list.append(upload_task["transcribeTask"])
-    return{
-        "taskList": task_list
-    }
-
 
 def fetch_task(mentor_id: str, question_id) -> dict:
     headers = {"mentor-graphql-req": "true", "Authorization": f"bearer {get_api_key()}"}
@@ -133,7 +117,7 @@ def fetch_task(mentor_id: str, question_id) -> dict:
     tdjson = res.json()
     if "errors" in tdjson:
         raise Exception(json.dumps(tdjson.get("errors")))
-    return convert_upload_task_gql(tdjson["data"]["uploadTask"])
+    return tdjson["data"]["uploadTask"]
 
 
 def fetch_question_name(question_id: str) -> str:
