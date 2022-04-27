@@ -112,14 +112,18 @@ def fetch_task_gql(mentor_id: str, question_id) -> GQLQueryBody:
         },
     }
 
-def convert_upload_task_gql(uploadTask):
+def convert_upload_task_gql(upload_task):
     task_list = []
-    if "transcodeWebTask" in uploadTask:
-        task_list.append(uploadTask["transcodeWebTask"])
-    if "transcodeMobileTask" in uploadTask:
-        task_list.append(uploadTask["transcodeMobileTask"])
-    if "transcribeTask" in uploadTask:
-        task_list.append(uploadTask["transcribeTask"])
+    if upload_task is None:
+        return {
+            "taskList": task_list
+        }
+    if "transcodeWebTask" in upload_task and upload_task["transcodeWebTask"]:
+        task_list.append(upload_task["transcodeWebTask"])
+    if "transcodeMobileTask" in upload_task and upload_task["transcodeMobileTask"]:
+        task_list.append(upload_task["transcodeMobileTask"])
+    if "transcribeTask" in upload_task and upload_task["transcribeTask"]:
+        task_list.append(upload_task["transcribeTask"])
     return{
         "taskList": task_list
     }
