@@ -30,7 +30,6 @@ class Media:
 
 @dataclass
 class TaskInfo:
-    task_name: str
     task_id: str
     status: str
 
@@ -90,17 +89,14 @@ def fetch_task_gql(mentor_id: str, question_id) -> GQLQueryBody:
         "query": """query UploadTask($mentorId: ID!, $questionId: ID!) {
             uploadTask(mentorId: $mentorId, questionId: $questionId){
                 transcodeWebTask {
-                    task_name
                     task_id
                     status
                 }
                 transcodeMobileTask {
-                    task_name
                     task_id
                     status
                 }
                 transcribeTask{
-                    task_name
                     task_id
                     status
                 }
