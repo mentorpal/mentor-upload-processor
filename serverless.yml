@@ -31,20 +31,20 @@ custom:
       # That's why we provide an empty default value '', but this
       # in effect prevent sls from catching errors (missing variable in ssm)!
       S3_STATIC_ARN: ${ssm:/mentorpal/v2/s3_static_arn, ''}
-      GRAPHQL_ENDPOINT: 'https://${ssm:/mentorpal/v2/alb_url, ""}/graphql'
+      GRAPHQL_ENDPOINT: 'http://${ssm:/mentorpal/v2/alb_url, ""}/graphql'
       API_SECRET: ${ssm:/mentorpal/v2/shared/api_secret, ''}
       ALERT_SNS_ARN: ${ssm:/mentorpal/v2/shared/sns_alert_topic_arn, ''}
     qa:
       S3_STATIC_ARN: ${ssm:/mentorpal/v2/s3_static_arn, ''}
       LOG_LEVEL: 'debug'
       IS_SENTRY_ENABLED: true
-      GRAPHQL_ENDPOINT: 'https://${ssm:/mentorpal/v2/alb_url, ""}/graphql'
+      GRAPHQL_ENDPOINT: 'http://${ssm:/mentorpal/v2/alb_url, ""}/graphql'
       API_SECRET: ${ssm:/mentorpal/v2/shared/api_secret, ''}
       ALERT_SNS_ARN: ${ssm:/mentorpal/v2/shared/sns_alert_topic_arn, ''}
     prod:
       LOG_LEVEL: 'info'
       IS_SENTRY_ENABLED: true
-      GRAPHQL_ENDPOINT: 'https://${ssm:/mentorpal/cf/alb_url, ""}/graphql'
+      GRAPHQL_ENDPOINT: 'http://${ssm:/mentorpal/cf/alb_url, ""}/graphql'
       S3_STATIC_ARN: ${ssm:/mentorpal/cf/s3_static_arn, ''}
       API_SECRET: ${ssm:/mentorpal/cf/shared/api_secret, ''}
       ALERT_SNS_ARN: ${ssm:/mentorpal/cf/shared/sns_alert_topic_arn, ''}
