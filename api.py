@@ -7,7 +7,7 @@
 from dataclasses import dataclass
 import json
 from os import environ
-from typing import List, TypedDict
+from typing import TypedDict
 
 import requests
 
