@@ -38,10 +38,10 @@ def transcode_web(video_file, s3_path):
     )
 
 
-def process_task(request, task):
+def process_task(request):
     log.info("video to process %s", request["video"])
     stored_task = fetch_from_graphql(
-        request["mentor"], request["question"], task["task_id"]
+        request["mentor"], request["question"], "transcodeWebTask"
     )
     if not stored_task:
         log.warn("task not found, skipping transcode")
@@ -60,30 +60,27 @@ def process_task(request, task):
             UpdateTaskStatusRequest(
                 mentor=request["mentor"],
                 question=request["question"],
-                task_id=task["task_id"],
-                new_status="IN_PROGRESS",
+                transcode_web_task={"status":"IN_PROGRESS"},
             )
         )
         transcode_web(work_file, s3_path)
-        media = [
-            {
+        web_media = {
                 "type": "video",
                 "tag": "web",
                 "url": f"{s3_path}/web.mp4",
             }
-        ]
+        
         upload_answer_and_task_status_update(
             AnswerUpdateRequest(
                 mentor=request["mentor"],
                 question=request["question"],
-                media=media,
+                web_media=web_media,
             ),
             UpdateTaskStatusRequest(
                 mentor=request["mentor"],
                 question=request["question"],
-                task_id=task["task_id"],
-                new_status="DONE",
-                media=media,
+                transcode_web_task={"status":"DONE"},
+                web_media=web_media,
             ),
         )
 
@@ -93,22 +90,20 @@ def handler(event, context):
     for record in event["Records"]:
         body = json.loads(str(record["body"]))
         request = json.loads(str(body["Message"]))["request"]
-        task_list = request["task_list"]
-        tasks = list(filter(lambda t: t["task_name"] == "transcoding-web", task_list))
-        if not tasks:
+        task = request["transcodeWebTask"] if "transcodeWebTask" in request else None
+        if not task:
             log.warning("no transcoding-web task requested")
             return
 
         try:
-            process_task(request, tasks[0])
+            process_task(request)
         except Exception as x:
             log.error(x)
             upload_task_status_update(
                 UpdateTaskStatusRequest(
                     mentor=request["mentor"],
                     question=request["question"],
-                    task_id=tasks[0]["task_id"],
-                    new_status="FAILED",
+                    transcode_web_task={"status":"FAILED"}
                 )
             )
             raise x

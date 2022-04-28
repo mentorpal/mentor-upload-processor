@@ -29,36 +29,42 @@ class Media:
 
 
 @dataclass
+class TaskInfo:
+    task_id: str
+    status: str
+
+@dataclass
 class AnswerUpdateRequest:
     mentor: str
     question: str
-    media: List[Media]
+    web_media: Media = None
+    mobile_media: Media = None
+    vtt_media: Media = None
     transcript: str = None
     has_edited_transcript: bool = None
 
+@dataclass
+class UpdateTaskStatusRequest:
+    mentor: str
+    question: str
+    transcript: str = None
+    transcode_web_task: TaskInfo = None
+    transcode_mobile_task: TaskInfo = None
+    transcribe_task: TaskInfo = None
+    web_media: Media = None
+    mobile_media: Media = None
+    vtt_media: Media = None
 
 @dataclass
 class AnswerUpdateResponse:
     mentor: str
     question: str
     transcript: str
-    media: List[Media]
+    web_media: Media
+    mobile_media: Media
+    vtt_media: Media
 
 
-@dataclass
-class TaskInfo:
-    flag: str
-    id: str
-
-
-@dataclass
-class UpdateTaskStatusRequest:
-    mentor: str
-    question: str
-    task_id: str
-    new_status: str
-    transcript: str = None
-    media: Media = None
 
 
 class GQLQueryBody(TypedDict):
@@ -82,7 +88,15 @@ def fetch_task_gql(mentor_id: str, question_id) -> GQLQueryBody:
     return {
         "query": """query UploadTask($mentorId: ID!, $questionId: ID!) {
             uploadTask(mentorId: $mentorId, questionId: $questionId){
-                taskList {
+                transcodeWebTask {
+                    task_id
+                    status
+                }
+                transcodeMobileTask {
+                    task_id
+                    status
+                }
+                transcribeTask{
                     task_id
                     status
                 }
@@ -124,24 +138,33 @@ def fetch_question_name(question_id: str) -> str:
 
 
 def upload_task_status_req_gql(req: UpdateTaskStatusRequest) -> GQLQueryBody:
-    variables = {}
-    variables["mentorId"] = req.mentor
-    variables["questionId"] = req.question
-    variables["taskId"] = req.task_id
-    variables["newStatus"] = req.new_status
+    variables = {"mentorId": req.mentor, "questionId": req.question}
+
+    variables["uploadTaskStatusInput"] = {}
     if req.transcript:
-        variables["transcript"] = req.transcript
-    if req.media:
-        variables["media"] = req.media
+        variables["uploadTaskStatusInput"]["transcript"] = req.transcript
+    if req.transcode_web_task:
+        variables["uploadTaskStatusInput"]["transcodeWebTask"] = req.transcode_web_task
+    if req.transcode_mobile_task:
+        variables["uploadTaskStatusInput"]["transcodeMobileTask"] = req.transcode_mobile_task
+    if req.transcribe_task:
+        variables["uploadTaskStatusInput"]["transcribeTask"] = req.transcribe_task
+
+    if req.web_media:
+        variables["uploadTaskStatusInput"]["webMedia"] = req.web_media
+    if req.mobile_media:
+        variables["uploadTaskStatusInput"]["mobileMedia"] = req.mobile_media
+    if req.vtt_media:
+        variables["uploadTaskStatusInput"]["vttMedia"] = req.vtt_media
+    
     return {
-        "query": """mutation UpdateUploadTaskStatus($mentorId: ID!, $questionId: ID!, $taskId: String!, $newStatus: String!, $transcript: String, $media: [AnswerMediaInputType]) {
+        "query": """mutation UpdateUploadTaskStatus($mentorId: ID!, $questionId: ID!, $uploadTaskStatusInput: UploadTaskStatusUpdateInputType!) {
             api {
-                uploadTaskStatusUpdate(mentorId: $mentorId, questionId: $questionId, taskId: $taskId, newStatus: $newStatus, transcript: $transcript, media: $media)
+                uploadTaskStatusUpdate(mentorId: $mentorId, questionId: $questionId, uploadTaskStatusInput: $uploadTaskStatusInput)
             }
         }""",
         "variables": variables,
     }
-
 
 def upload_answer_and_task_status_req_gql(
     answer_req: AnswerUpdateRequest, status_req: UpdateTaskStatusRequest
@@ -149,26 +172,39 @@ def upload_answer_and_task_status_req_gql(
     variables = {}
     variables["mentorId"] = answer_req.mentor
     variables["questionId"] = answer_req.question
-
-    variables["answer"] = {
-        "media": answer_req.media,
-    }
+    variables["answer"] = {}
     if answer_req.transcript is not None:
         variables["answer"]["transcript"] = answer_req.transcript
     if answer_req.has_edited_transcript is not None:
         variables["answer"]["hasEditedTranscript"] = answer_req.has_edited_transcript
+    if answer_req.vtt_media:
+        variables["answer"]["vttMedia"] = answer_req.vtt_media
+    if answer_req.web_media:
+        variables["answer"]["webMedia"] = answer_req.web_media
+    if answer_req.mobile_media:
+        variables["answer"]["mobileMedia"] = answer_req.mobile_media
+    
+    variables["uploadTaskStatusInput"]={}
+    if status_req.transcript is not None:
+        variables["uploadTaskStatusInput"]["transcript"] = status_req.transcript
+    if status_req.transcode_web_task:
+        variables["uploadTaskStatusInput"]["transcodeWebTask"] = status_req.transcode_web_task
+    if status_req.transcode_mobile_task:
+        variables["uploadTaskStatusInput"]["transcodeMobileTask"] = status_req.transcode_mobile_task
+    if status_req.transcribe_task:
+        variables["uploadTaskStatusInput"]["transcribeTask"] = status_req.transcribe_task
+    if status_req.vtt_media:
+        variables["uploadTaskStatusInput"]["vttMedia"] = status_req.vtt_media
+    if status_req.web_media:
+        variables["uploadTaskStatusInput"]["webMedia"] = status_req.web_media
+    if status_req.mobile_media:
+        variables["uploadTaskStatusInput"]["mobileMedia"] = status_req.mobile_media
 
-    variables["taskId"] = status_req.task_id
-    variables["newStatus"] = status_req.new_status
-    if status_req.transcript:
-        variables["transcript"] = status_req.transcript
-    if status_req.media:
-        variables["media"] = status_req.media
     return {
-        "query": """mutation UpdateUploadAnswerAndTaskStatus($mentorId: ID!, $questionId: ID!, $answer: UploadAnswerType!, $taskId: String!, $newStatus: String!, $transcript: String, $media: [AnswerMediaInputType]) {
+        "query": """mutation UpdateUploadAnswerAndTaskStatus($mentorId: ID!, $questionId: ID!, $answer: UploadAnswerType!, $uploadTaskStatusInput: UploadTaskStatusUpdateInputType!) {
             api {
                 uploadAnswer(mentorId: $mentorId, questionId: $questionId, answer: $answer)
-                uploadTaskStatusUpdate(mentorId: $mentorId, questionId: $questionId, taskId: $taskId, newStatus: $newStatus, transcript: $transcript, media: $media)
+                uploadTaskStatusUpdate(mentorId: $mentorId, questionId: $questionId, uploadTaskStatusInput: $uploadTaskStatusInput)
             }
         }""",
         "variables": variables,

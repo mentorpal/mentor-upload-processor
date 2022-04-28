@@ -69,7 +69,7 @@ def transcribe_video(mentor, question, task_id, video_file):
 
 def process_task(request, task):
     stored_task = fetch_from_graphql(
-        request["mentor"], request["question"], task["task_id"]
+        request["mentor"], request["question"], "transcribeTask"
     )
     if not stored_task:
         log.warn("task not found, skipping transcription")
@@ -85,8 +85,7 @@ def process_task(request, task):
             UpdateTaskStatusRequest(
                 mentor=request["mentor"],
                 question=request["question"],
-                task_id=task["task_id"],
-                new_status="DONE",
+                transcribe_task={"status":"DONE"}
             )
         )
         return
@@ -95,8 +94,7 @@ def process_task(request, task):
         UpdateTaskStatusRequest(
             mentor=request["mentor"],
             question=request["question"],
-            task_id=task["task_id"],
-            new_status="IN_PROGRESS",
+            transcribe_task={"status":"IN_PROGRESS"}
         )
     )
 
@@ -119,22 +117,20 @@ def handler(event, context):
     for record in event["Records"]:
         body = json.loads(str(record["body"]))
         request = json.loads(str(body["Message"]))["request"]
-        task_list = request["task_list"]
-        tasks = list(filter(lambda t: t["task_name"] == "transcribing", task_list))
-        if not tasks:
+        task = request["transcribeTask"] if "transcribeTask" in request else None
+        if not task:
             log.warning("transcribe task not requested")
             return
 
         try:
-            process_task(request, tasks[0])
+            process_task(request, task)
         except Exception as x:
             log.error(x)
             upload_task_status_update(
                 UpdateTaskStatusRequest(
                     mentor=request["mentor"],
                     question=request["question"],
-                    task_id=tasks[0]["task_id"],
-                    new_status="FAILED",
+                    transcribe_task={"status":"FAILED"}
                 )
             )
             raise x
