@@ -33,6 +33,7 @@ class TaskInfo:
     task_id: str
     status: str
 
+
 @dataclass
 class AnswerUpdateRequest:
     mentor: str
@@ -42,6 +43,7 @@ class AnswerUpdateRequest:
     vtt_media: Media = None
     transcript: str = None
     has_edited_transcript: bool = None
+
 
 @dataclass
 class UpdateTaskStatusRequest:
@@ -55,6 +57,7 @@ class UpdateTaskStatusRequest:
     mobile_media: Media = None
     vtt_media: Media = None
 
+
 @dataclass
 class AnswerUpdateResponse:
     mentor: str
@@ -63,8 +66,6 @@ class AnswerUpdateResponse:
     web_media: Media
     mobile_media: Media
     vtt_media: Media
-
-
 
 
 class GQLQueryBody(TypedDict):
@@ -112,7 +113,9 @@ def fetch_task_gql(mentor_id: str, question_id) -> GQLQueryBody:
 def fetch_task(mentor_id: str, question_id) -> dict:
     headers = {"mentor-graphql-req": "true", "Authorization": f"bearer {get_api_key()}"}
     body = fetch_task_gql(mentor_id, question_id)
-    res = requests.post(get_graphql_endpoint(), json=body, headers=headers, verify=False)
+    res = requests.post(
+        get_graphql_endpoint(), json=body, headers=headers, verify=False
+    )
     res.raise_for_status()
     tdjson = res.json()
     if "errors" in tdjson:
@@ -123,7 +126,9 @@ def fetch_task(mentor_id: str, question_id) -> dict:
 def fetch_question_name(question_id: str) -> str:
     headers = {"mentor-graphql-req": "true", "Authorization": f"bearer {get_api_key()}"}
     body = fetch_question_name_gql(question_id)
-    res = requests.post(get_graphql_endpoint(), json=body, headers=headers, verify=False)
+    res = requests.post(
+        get_graphql_endpoint(), json=body, headers=headers, verify=False
+    )
     res.raise_for_status()
     tdjson = res.json()
     if "errors" in tdjson:
@@ -146,7 +151,9 @@ def upload_task_status_req_gql(req: UpdateTaskStatusRequest) -> GQLQueryBody:
     if req.transcode_web_task:
         variables["uploadTaskStatusInput"]["transcodeWebTask"] = req.transcode_web_task
     if req.transcode_mobile_task:
-        variables["uploadTaskStatusInput"]["transcodeMobileTask"] = req.transcode_mobile_task
+        variables["uploadTaskStatusInput"][
+            "transcodeMobileTask"
+        ] = req.transcode_mobile_task
     if req.transcribe_task:
         variables["uploadTaskStatusInput"]["transcribeTask"] = req.transcribe_task
 
@@ -156,7 +163,7 @@ def upload_task_status_req_gql(req: UpdateTaskStatusRequest) -> GQLQueryBody:
         variables["uploadTaskStatusInput"]["mobileMedia"] = req.mobile_media
     if req.vtt_media:
         variables["uploadTaskStatusInput"]["vttMedia"] = req.vtt_media
-    
+
     return {
         "query": """mutation UpdateUploadTaskStatus($mentorId: ID!, $questionId: ID!, $uploadTaskStatusInput: UploadTaskStatusUpdateInputType!) {
             api {
@@ -165,6 +172,7 @@ def upload_task_status_req_gql(req: UpdateTaskStatusRequest) -> GQLQueryBody:
         }""",
         "variables": variables,
     }
+
 
 def upload_answer_and_task_status_req_gql(
     answer_req: AnswerUpdateRequest, status_req: UpdateTaskStatusRequest
@@ -183,16 +191,22 @@ def upload_answer_and_task_status_req_gql(
         variables["answer"]["webMedia"] = answer_req.web_media
     if answer_req.mobile_media:
         variables["answer"]["mobileMedia"] = answer_req.mobile_media
-    
-    variables["uploadTaskStatusInput"]={}
+
+    variables["uploadTaskStatusInput"] = {}
     if status_req.transcript is not None:
         variables["uploadTaskStatusInput"]["transcript"] = status_req.transcript
     if status_req.transcode_web_task:
-        variables["uploadTaskStatusInput"]["transcodeWebTask"] = status_req.transcode_web_task
+        variables["uploadTaskStatusInput"][
+            "transcodeWebTask"
+        ] = status_req.transcode_web_task
     if status_req.transcode_mobile_task:
-        variables["uploadTaskStatusInput"]["transcodeMobileTask"] = status_req.transcode_mobile_task
+        variables["uploadTaskStatusInput"][
+            "transcodeMobileTask"
+        ] = status_req.transcode_mobile_task
     if status_req.transcribe_task:
-        variables["uploadTaskStatusInput"]["transcribeTask"] = status_req.transcribe_task
+        variables["uploadTaskStatusInput"][
+            "transcribeTask"
+        ] = status_req.transcribe_task
     if status_req.vtt_media:
         variables["uploadTaskStatusInput"]["vttMedia"] = status_req.vtt_media
     if status_req.web_media:
@@ -216,7 +230,9 @@ def upload_answer_and_task_status_update(
 ) -> None:
     headers = {"mentor-graphql-req": "true", "Authorization": f"bearer {get_api_key()}"}
     body = upload_answer_and_task_status_req_gql(answer_req, status_req)
-    res = requests.post(get_graphql_endpoint(), json=body, headers=headers, verify=False)
+    res = requests.post(
+        get_graphql_endpoint(), json=body, headers=headers, verify=False
+    )
     res.raise_for_status()
     tdjson = res.json()
     if "errors" in tdjson:
@@ -226,7 +242,9 @@ def upload_answer_and_task_status_update(
 def upload_task_status_update(req: UpdateTaskStatusRequest) -> None:
     headers = {"mentor-graphql-req": "true", "Authorization": f"bearer {get_api_key()}"}
     body = upload_task_status_req_gql(req)
-    res = requests.post(get_graphql_endpoint(), json=body, headers=headers, verify=False)
+    res = requests.post(
+        get_graphql_endpoint(), json=body, headers=headers, verify=False
+    )
     res.raise_for_status()
     tdjson = res.json()
     if "errors" in tdjson:

@@ -61,29 +61,29 @@ def process_task(request):
             UpdateTaskStatusRequest(
                 mentor=request["mentor"],
                 question=request["question"],
-                transcode_mobile_task={"status":"IN_PROGRESS"},
+                transcode_mobile_task={"status": "IN_PROGRESS"},
             )
         )
 
         transcode_mobile(work_file, s3_path)
 
         mobile_media = {
-                "type": "video",
-                "tag": "mobile",
-                "url": f"{s3_path}/mobile.mp4",
-            }
-        
+            "type": "video",
+            "tag": "mobile",
+            "url": f"{s3_path}/mobile.mp4",
+        }
+
         upload_answer_and_task_status_update(
             AnswerUpdateRequest(
                 mentor=request["mentor"],
                 question=request["question"],
-                mobile_media=mobile_media
+                mobile_media=mobile_media,
             ),
             UpdateTaskStatusRequest(
                 mentor=request["mentor"],
                 question=request["question"],
-                transcode_mobile_task={"status":"DONE"},
-                mobile_media=mobile_media
+                transcode_mobile_task={"status": "DONE"},
+                mobile_media=mobile_media,
             ),
         )
 
@@ -93,7 +93,9 @@ def handler(event, context):
     for record in event["Records"]:
         body = json.loads(str(record["body"]))
         request = json.loads(str(body["Message"]))["request"]
-        task = request["transcodeMobileTask"] if "transcodeMobileTask" in request else None
+        task = (
+            request["transcodeMobileTask"] if "transcodeMobileTask" in request else None
+        )
         if not task:
             log.warning("no transcoding-mobile task requested")
             return
@@ -106,7 +108,7 @@ def handler(event, context):
                 UpdateTaskStatusRequest(
                     mentor=request["mentor"],
                     question=request["question"],
-                    transcode_mobile_task={"status":"FAILED"}
+                    transcode_mobile_task={"status": "FAILED"},
                 )
             )
             raise x
