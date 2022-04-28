@@ -67,11 +67,10 @@ def process_event(record):
             ExtraArgs={"ContentType": "text/vtt"},
         )
         vtt_media = {
-                "type": "subtitles",
-                "tag": "en",
-                "url": f"videos/{mentor}/{question}/en.vtt",
-            }
-        
+            "type": "subtitles",
+            "tag": "en",
+            "url": f"videos/{mentor}/{question}/en.vtt",
+        }
 
         upload_answer_and_task_status_update(
             AnswerUpdateRequest(
@@ -85,7 +84,7 @@ def process_event(record):
                 mentor=mentor,
                 question=question,
                 transcript=transcript,
-                transcribe_task={"status":"DONE"},
+                transcribe_task={"status": "DONE"},
                 vtt_media=vtt_media,
             ),
         )
@@ -105,7 +104,7 @@ def handler(event, context):
                 UpdateTaskStatusRequest(
                     mentor=mentor,
                     question=question,
-                    transcribe_task={"status":"FAILED"}
+                    transcribe_task={"status": "FAILED"},
                 )
             )
             raise x
