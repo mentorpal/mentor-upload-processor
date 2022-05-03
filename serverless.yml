@@ -15,7 +15,26 @@ plugins:
   - serverless-deployment-bucket
   - serverless-offline
   - serverless-layers
+  - serverless-domain-manager
+
 custom:
+  domain:
+    dev: api-dev.mentorpal.org
+    qa: api-qa.mentorpal.org
+    prod: api.mentorpal.org
+  customDomain:
+    domainName: ${self:custom.domain.${opt:stage, 'dev'}}
+    basePath: 'upload' # api root url becomes: api.mentorpal.org/upload
+    # certificateName: '*.mentorpal.org' didnt work
+    # certificateName: 'c6107db7-c2ef-4e85-a21f-bee7d1ac008a' didnt work either
+    stage: ${self:provider.stage}
+    endpointType: 'regional'
+    apiType: rest
+    createRoute53Record: true
+    securityPolicy: tls_1_2
+    # we might have multiple services, better to manually invoke `sls create_domain`
+    autoDomain: false
+
   stages:
     offline:
       LOG_LEVEL: 'trace'
@@ -55,7 +74,6 @@ custom:
         layersDeploymentBucket: ${self:provider.deploymentBucket.name}
         dependenciesPath: ./requirements.txt
         compatibleRuntimes:
-          - python3.7
           - python3.8
         # applies to all lambdas
 
@@ -64,6 +82,7 @@ custom:
 
 provider:
   name: aws
+  region: ${opt:region, 'us-east-1'}
   stage: ${opt:stage, 'dev'} # stage is dev unless otherwise specified with --stage flag
   deploymentBucket:
     name: '${self:service}-sls-deploy-${self:provider.stage}'
@@ -76,11 +95,29 @@ provider:
     REPOSITORY: mentor-upload
   runtime: python3.8
   lambdaHashingVersion: 20201221
+  architecture: x86_64 # because of the static ffmpeg binaries and python dependencies
+  endpointType: regional
+  apiGateway:
+    minimumCompressionSize: 1024
+    # https://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-payload-encodings.html
+    binaryMediaTypes:
+      - 'multipart/form-data'    
   tracing:
     lambda: true
-  logRetentionInDays: 30      
-  region: ${opt:region, 'us-east-1'}
-  architecture: x86_64 # because of the static ffmpeg binaries and python dependencies
+    apiGateway: true
+  logRetentionInDays: 30
+  logs:
+    restApi:
+      # Enables HTTP access logs (default: true)
+      accessLogging: true
+      # # Log format to use for access logs
+      # format: 'requestId: $context.requestId'
+      # Enable execution logging (default: true)
+      executionLogging: true
+      level: INFO  # INFO or ERROR
+      # Log full requests/responses for execution logging (default: true)
+      fullExecutionData: false
+
   environment:
     # IS_OFFLINE: ${env:IS_OFFLINE}
     STAGE: ${self:provider.stage}
@@ -120,6 +157,7 @@ package:
      - '!./**'
     # and then add back in only the files we need:
      - '*.py'
+     - 'module/**'    
 
 layers:
   # binaries are shared and this will make lambdas size smaller
@@ -140,6 +178,41 @@ layers:
     retain: false # If true, layer versions are not deleted as new ones are created
 
 functions:
+  authorizer_func:
+    handler: authorizer.handler
+
+  http_thumbnail:
+    handler: thumbnail.handler
+    memorySize: 1024
+    timeout: 30 # 30sec is max for http requests
+    events:
+      - http:
+          path: /thumbnail
+          method: post
+          authorizer:
+            name: authorizer_func
+            resultTtlInSeconds: 300
+            identitySource: method.request.header.Authorization
+            type: token
+
+  # http_answer_upload:
+  #   handler: answer-upload.handler
+  #   memorySize: 4096
+  #   timeout: 30 # 30sec is max for http requests
+  #   events:
+  #     - http:
+  #         path: /answer
+  #         method: post
+  #         authorizer: 
+  #           name: authorizer_func
+  #           resultTtlInSeconds: 300
+  #           identitySource: method.request.header.Authorization
+  #           type: token
+  #   layers:
+  #     # binaries gets named "Binaries"+"LambdaLayer":
+  #     # see https://www.serverless.com/framework/docs/providers/aws/guide/layers#using-your-layers
+  #     - { Ref: BinariesLambdaLayer }
+  
   answer-transcode-web:
     handler: answer-transcode-web.handler
     memorySize: 8192 # 5min video takes 100sec with 2GB, 50sec with 4GB, 30sec with 8GB

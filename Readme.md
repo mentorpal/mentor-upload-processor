@@ -16,7 +16,20 @@ terraform plan -lock=false -var-file=secret.tfvars --out=cicd
 terraform apply -lock=false "cicd"
 ```
 
+# Deploy
+
+## api domain name
+
+This must be done just once manually! 
+To create the domain name mapping run this command just once:
+
+```
+sls create_domain --stage <prod|qa|dev> --region <region>
+```
+
+
 ## Manual deploy
+
 To deploy manually appropriate credentials are required.
 First run once `npm ci` to get all the tools and then:
 
