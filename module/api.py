@@ -7,7 +7,7 @@
 from dataclasses import dataclass
 import json
 from os import environ
-from typing import TypedDict
+from typing import TypedDict, List
 import requests
 from module.logger import get_logger
 
@@ -85,6 +85,32 @@ class FetchUploadTaskReq:
 
 class GQLQueryBody(TypedDict):
     query: str
+
+
+@dataclass
+class ImportTaskCreateGraphQLUpdate:
+    status: str
+    errorMessage: str = ""  # noqa
+
+
+@dataclass
+class AnswerMediaMigrationTask:
+    question: str
+    status: str
+    errorMessage: str = ""  # noqa
+
+
+@dataclass
+class ImportTaskCreateS3VideoMigration:
+    status: str
+    answerMediaMigrations: List[AnswerMediaMigrationTask]  # noqa
+
+
+@dataclass
+class ImportTaskGQLRequest:
+    mentor: str
+    graphql_update: ImportTaskCreateGraphQLUpdate
+    s3_video_migration: ImportTaskCreateS3VideoMigration
 
 
 def fetch_question_name_gql(question_id: str) -> GQLQueryBody:
@@ -305,6 +331,33 @@ def mentor_thumbnail_update(req: MentorThumbnailUpdateRequest) -> None:
     headers = {"mentor-graphql-req": "true", "Authorization": f"bearer {get_api_key()}"}
     body = thumbnail_update_gql(req)
     log.debug(body)
+    res = requests.post(get_graphql_endpoint(), json=body, headers=headers)
+    res.raise_for_status()
+    tdjson = res.json()
+    if "errors" in tdjson:
+        raise Exception(json.dumps(tdjson.get("errors")))
+
+
+def import_task_create_gql_query(req: ImportTaskGQLRequest) -> GQLQueryBody:
+    return {
+        "query": """mutation ImportTaskCreate($mentor: ID!,
+        $graphQLUpdate: GraphQLUpdateInputType!,
+        $s3VideoMigrate: S3VideoMigrationInputType!) {
+            api {
+                importTaskCreate(graphQLUpdate: $graphQLUpdate, mentor: $mentor, s3VideoMigrate: $s3VideoMigrate)
+            }
+        }""",
+        "variables": {
+            "mentor": req.mentor,
+            "graphQLUpdate": req.graphql_update,
+            "s3VideoMigrate": req.s3_video_migration,
+        },
+    }
+
+
+def import_task_create_gql(req: ImportTaskGQLRequest) -> None:
+    headers = {"mentor-graphql-req": "true", "Authorization": f"bearer {get_api_key()}"}
+    body = import_task_create_gql_query(req)
     res = requests.post(get_graphql_endpoint(), json=body, headers=headers)
     res.raise_for_status()
     tdjson = res.json()

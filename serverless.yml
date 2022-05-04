@@ -148,7 +148,13 @@ provider:
           Action:
           - "transcribe:StartTranscriptionJob"
           Resource: "*"
-
+        - Effect: "Allow"
+          Action:
+            - dynamodb:GetItem
+            - dynamodb:PutItem
+            - dynamodb:UpdateItem
+          Resource:
+            Fn::GetAtt: [JobsTable, Arn]
 
 package:
 #  individually: false
@@ -194,6 +200,59 @@ functions:
             resultTtlInSeconds: 300
             identitySource: method.request.header.Authorization
             type: token
+
+  http_transfer_start:
+    handler: transfer-start.handler
+    memorySize: 512
+    timeout: 10
+    environment:
+      JOBS_TABLE_NAME: upload-jobs-${self:provider.stage}    
+    events:
+      - http:
+          path: /transfer/mentor
+          method: post
+          authorizer:
+            name: authorizer_func
+            resultTtlInSeconds: 300
+            identitySource: method.request.header.Authorization
+            type: token
+
+  http_transfer_status:
+    handler: transfer-status.handler
+    memorySize: 256
+    timeout: 10
+    environment:
+      JOBS_TABLE_NAME: upload-jobs-${self:provider.stage}
+    events:
+      - http:
+          path: /transfer/status/{id}
+          method: get
+          authorizer:
+            name: authorizer_func
+            resultTtlInSeconds: 300
+            identitySource: method.request.header.Authorization
+            type: token
+          request:
+            parameters:
+              paths:
+                id: true
+
+  dbstream_transfer_process:
+    description: Triggered by new records in dynamo, implements mentor transfer
+    handler: transfer-process.handler
+    memorySize: 2048
+    timeout: 900 # max
+    environment:
+      JOBS_TABLE_NAME: upload-jobs-${self:provider.stage}
+    events:
+      - stream:
+          type: dynamodb
+          maximumRetryAttempts: 3
+          arn:
+            Fn::GetAtt: [JobsTable, Arn]
+          # to avoid triggers on status update, make sure it's only when a new job is added:
+          filterPatterns:
+            - eventName: [INSERT]
 
   # http_answer_upload:
   #   handler: answer-upload.handler
@@ -493,6 +552,26 @@ resources:
           - ${self:custom.stages.${self:provider.stage}.ALERT_SNS_ARN}
         OKActions:
           - ${self:custom.stages.${self:provider.stage}.ALERT_SNS_ARN}
+
+    JobsTable:
+      Type: AWS::DynamoDB::Table
+      DeletionPolicy: Delete
+      UpdateReplacePolicy: Delete
+      Properties:
+        TableName: ${self:provider.environment.JOBS_TABLE_NAME}
+        BillingMode: PAY_PER_REQUEST
+        StreamSpecification:
+          StreamViewType: NEW_IMAGE
+        AttributeDefinitions:
+          - AttributeName: id
+            AttributeType: S
+        KeySchema:
+          - AttributeName: id
+            KeyType: HASH
+        # to cleanup jobs after a while set this attribute as a number
+        TimeToLiveSpecification: 
+          AttributeName: ttl
+          Enabled: true
 
   Outputs:
     ProcessUploadSnsTopicName:
