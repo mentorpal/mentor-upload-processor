@@ -206,7 +206,7 @@ functions:
     memorySize: 512
     timeout: 10
     environment:
-      JOBS_TABLE_NAME: upload-jobs-${self:provider.stage}    
+      JOBS_TABLE_NAME: upload-jobs-${self:provider.stage}
     events:
       - http:
           path: /transfer/mentor
@@ -249,7 +249,7 @@ functions:
           type: dynamodb
           maximumRetryAttempts: 3
           arn:
-            Fn::GetAtt: [JobsTable, Arn]
+            Fn::GetAtt: [JobsTable, StreamArn]
           # to avoid triggers on status update, make sure it's only when a new job is added:
           filterPatterns:
             - eventName: [INSERT]
@@ -558,7 +558,7 @@ resources:
       DeletionPolicy: Delete
       UpdateReplacePolicy: Delete
       Properties:
-        TableName: ${self:provider.environment.JOBS_TABLE_NAME}
+        TableName: upload-jobs-${self:provider.stage}
         BillingMode: PAY_PER_REQUEST
         StreamSpecification:
           StreamViewType: NEW_IMAGE
