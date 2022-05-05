@@ -259,8 +259,8 @@ def process_transfer_mentor(s3_client, s3_bucket, req: ProcessTransferMentor):
                     },
                 )
             )
-        if answer_failure:
-            raise Exception(f"Failed to transfer {mentor}")
+    if answer_failure:
+        raise Exception(f"Failed to transfer {mentor}")
 
 
 def import_mentor(
