@@ -1,0 +1,5 @@
+{
+  "type": "TOKEN",
+  "methodArn": "arn:aws:execute-api:us-east-1:100000000655:1111111111/dev/POST/transfer/mentor",
+  "authorizationToken": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjYxOTZhZjVlMDY4ZDQzZGM2ODYxOTRlZCIsInJvbGUiOiJBRE1JTiIsIm1lbnRvcklkcyI6WyI2MTk2YWY1ZTA2OGQ0M2RjNjg2MTk0ZjgiXSwiaWF0IjoxNjUxNzUwNzg0LCJleHAiOjE2NTk1MjY3ODR9.AuyvrhcDoAbPmIr1Og18NKRi3fgU3wksNtZzeKW_QwY"
+}

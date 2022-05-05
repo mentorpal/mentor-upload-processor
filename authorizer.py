@@ -6,15 +6,14 @@
 #
 import json
 import jwt
-from os import environ
 from jsonschema import validate, ValidationError
 from module.logger import get_logger
-from module.utils import load_sentry
+from module.utils import load_sentry, require_env
 
 
 load_sentry()
 log = get_logger("authorizer")
-jwt_secret = environ.get("JWT_SECRET")
+jwt_secret = require_env("JWT_SECRET")
 jwt_payload_schema = {
     "type": "object",
     "properties": {
@@ -97,3 +96,9 @@ def handler(event, context):
             ],
         },
     }
+
+# # for local debugging:
+# if __name__ == "__main__":
+#     with open("__events__/authorize-event.json.dist") as f:
+#         event = json.loads(f.read())
+#         handler(event, {})
