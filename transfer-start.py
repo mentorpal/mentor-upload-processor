@@ -78,7 +78,7 @@ def handler(event, context):
         "replacedMentorDataChanges": replace_mentor_data_changes,
         "created": datetime.now().isoformat(),
         # https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/time-to-live-ttl-before-you-start.html#time-to-live-ttl-before-you-start-formatting
-        "ttl": int(datetime.datetime.now().timestamp()) + ttl_sec,
+        "ttl": int(datetime.now().timestamp()) + ttl_sec,
     }
     job_table.put_item(Item=train_job)
     data = {
@@ -93,6 +93,6 @@ def handler(event, context):
 
 # # for local debugging:
 # if __name__ == "__main__":
-#     with open("__events__/transfer-start-event.json") as f:
+#     with open("__events__/transfer-start-event.json.dist") as f:
 #         event = json.loads(f.read())
 #         handler(event, {})
