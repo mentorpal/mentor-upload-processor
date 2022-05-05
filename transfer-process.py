@@ -26,14 +26,18 @@ job_table = dynamodb.Table(JOBS_TABLE_NAME)
 
 def handler(event, context):
     log.debug(json.dumps(event))
-    records = list(filter(
-        lambda r: r["eventName"] == "INSERT" and r["dynamodb"] and r["dynamodb"]["NewImage"],
-        event["Records"],
-    ))
+    records = list(
+        filter(
+            lambda r: r["eventName"] == "INSERT"
+            and r["dynamodb"]
+            and r["dynamodb"]["NewImage"],
+            event["Records"],
+        )
+    )
     log.debug("records to process: %s", len(records))
     for record in records:
-        payload = b64decode(record["dynamodb"]["NewImage"]["payload"]["B"]) # binary
-        request = gzip.decompress(payload).decode('utf-8')
+        payload = b64decode(record["dynamodb"]["NewImage"]["payload"]["B"])  # binary
+        request = json.loads(gzip.decompress(payload).decode("utf-8"))
         # todo update status
         process_transfer_mentor(s3_client, s3_bucket, request)
         # todo update status
