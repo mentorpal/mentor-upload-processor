@@ -258,7 +258,6 @@ class ProcessTransferMentor(TypedDict):
     replacedMentorDataChanges: List[ReplacedMentorDataChanges]
 
 
-
 @dataclass
 class ImportTaskUpdateGQLRequest:
     mentor: str
@@ -547,6 +546,7 @@ class MentorExportJson:
     answers: List[Answer]
     userQuestions: List[UserQuestion]
 
+
 @dataclass
 class ImportMentorGQLRequest:
     mentor: str
@@ -687,7 +687,6 @@ def import_mentor_gql_query(req: ImportMentorGQLRequest) -> GQLQueryBody:
     }
 
 
-
 def import_task_update_gql(req: ImportTaskGQLRequest) -> None:
     headers = {"mentor-graphql-req": "true", "Authorization": f"bearer {get_api_key()}"}
     body = import_task_update_gql_query(req)
@@ -727,7 +726,6 @@ def update_media(req: MediaUpdateRequest) -> None:
         raise Exception(json.dumps(tdjson.get("errors")))
 
 
-
 def validate_json(json_data, json_schema):
     try:
         jsonschema.validate(instance=json_data, schema=json_schema)
@@ -745,6 +743,7 @@ def exec_graphql_with_json_validation(request_query, json_schema, **req_kwargs):
     validate_json(tdjson, json_schema)
     return tdjson
 
+
 class MentorImportMediaResponse:
     url: str
     type: str
@@ -761,9 +760,9 @@ class MentorImportAnswersResponse:
     question: MentorImportQuestionResponse
     media: List[MentorImportMediaResponse]
 
+
 class MentorImportGQLResponse:
     answers: List[MentorImportAnswersResponse]
-
 
 
 def get_media_list_from_answer_gql(answer_gql):

@@ -97,6 +97,7 @@ def handler(event, context):
         },
     }
 
+
 # # for local debugging:
 # if __name__ == "__main__":
 #     with open("__events__/authorize-event.json.dist") as f:
