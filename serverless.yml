@@ -189,6 +189,8 @@ layers:
 functions:
   authorizer_func:
     handler: authorizer.handler
+    environment:
+      JWT_SECRET: ${self:custom.stages.${self:provider.stage}.JWT_SECRET}
 
   http_thumbnail:
     handler: thumbnail.handler
