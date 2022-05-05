@@ -10,6 +10,7 @@ from os import environ
 from typing import TypedDict, List
 import requests
 from module.logger import get_logger
+import jsonschema
 
 
 log = get_logger()
@@ -83,6 +84,15 @@ class FetchUploadTaskReq:
     question: str
 
 
+@dataclass
+class MediaUpdateRequest:
+    mentor: str
+    question: str
+    web_media: Media = None
+    mobile_media: Media = None
+    vtt_media: Media = None
+
+
 class GQLQueryBody(TypedDict):
     query: str
 
@@ -111,6 +121,150 @@ class ImportTaskGQLRequest:
     mentor: str
     graphql_update: ImportTaskCreateGraphQLUpdate
     s3_video_migration: ImportTaskCreateS3VideoMigration
+
+
+@dataclass
+class AnswerMediaMigrateUpdate:
+    question: str
+    status: str
+    errorMessage: str
+
+
+class MentorInfo:
+    name: str
+    firstName: str
+    title: str
+    email: str
+    thumbnail: str
+    allowContact: bool
+    defaultSubject: str
+    mentorType: str
+
+
+class Question:
+    _id: str
+    question: str
+    type: str
+    name: str
+    clientId: str
+    paraphrases: List[str]
+    mentor: str
+    mentorType: str
+    minVideoLength: str
+
+
+class Category:
+    id: str
+    name: str
+    description: str
+
+
+class Topic:
+    id: str
+    name: str
+    description: str
+
+
+class SubjectQuestionGQL:
+    question: Question
+    category: Category
+    topics: List[Topic]
+
+
+class Subject:
+    _id: str
+    name: str
+    type: str
+    description: str
+    isRequired: str
+    categories: List[Category]
+    topics: List[Topic]
+    questions: List[SubjectQuestionGQL]
+
+
+class Answer:
+    _id: str
+    question: Question
+    hasEditedTranscript: bool
+    transcript: str
+    status: str
+    media: List[Media]
+
+
+class UserQuestionMentor:
+    _id: str
+    name: str
+
+
+class UserQuestionQuestion:
+    _id: str
+    question: str
+
+
+class UserQuestionAnswer:
+    _id: str
+    transcript: str
+    question: UserQuestionQuestion
+
+
+class UserQuestion:
+    _id: str
+    question: str
+    confidence: float
+    classifierEntryType: str
+    feedback: str
+    mentor: UserQuestionMentor
+    classifierAnswer: UserQuestionAnswer
+    graderAnswer: UserQuestionAnswer
+
+
+class MentorExportJson:
+    id: str
+    mentorInfo: MentorInfo
+    subjects: List[Subject]
+    questions: List[Question]
+    answers: List[Answer]
+    userQuestions: List[UserQuestion]
+
+
+class AnswerGQL:
+    _id: str
+    question: Question
+    hasEditedTranscript: bool
+    transcript: str
+    status: str
+    media: List[Media]
+    hasUntransferredMedia: bool
+
+
+class ReplacedMentorQuestionChanges:
+    editType: str
+    data: Question
+
+
+class ReplacedMentorAnswerChanges:
+    editType: str
+    data: AnswerGQL
+
+
+class ReplacedMentorDataChanges:
+    questionChanges: List[ReplacedMentorQuestionChanges]
+    answerChanges: List[ReplacedMentorAnswerChanges]
+
+
+class ProcessTransferMentor(TypedDict):
+    mentor: str
+    mentorExportJson: MentorExportJson
+    replacedMentorDataChanges: List[ReplacedMentorDataChanges]
+
+
+
+@dataclass
+class ImportTaskUpdateGQLRequest:
+    mentor: str
+    graphql_update: ImportTaskCreateGraphQLUpdate = None
+    s3_video_migration: ImportTaskCreateS3VideoMigration = None
+    answerMediaMigrateUpdate: AnswerMediaMigrateUpdate = None
 
 
 def fetch_question_name_gql(question_id: str) -> GQLQueryBody:
@@ -363,3 +517,282 @@ def import_task_create_gql(req: ImportTaskGQLRequest) -> None:
     tdjson = res.json()
     if "errors" in tdjson:
         raise Exception(json.dumps(tdjson.get("errors")))
+
+
+def import_task_update_gql_query(req: ImportTaskUpdateGQLRequest) -> GQLQueryBody:
+    variables = {}
+    variables["mentor"] = req.mentor
+    if req.graphql_update:
+        variables["graphQLUpdate"] = req.graphql_update
+    if req.s3_video_migration:
+        variables["s3VideoMigrateUpdate"] = req.s3_video_migration
+    if req.answerMediaMigrateUpdate:
+        variables["answerMediaMigrateUpdate"] = req.answerMediaMigrateUpdate
+
+    return {
+        "query": """mutation ImportTaskUpdate($mentor: ID!, $graphQLUpdate: GraphQLUpdateInputType, $s3VideoMigrateUpdate: S3VideoMigrationInputType, $answerMediaMigrateUpdate: AnswerMediaMigrationInputType){
+                        api{
+                            importTaskUpdate(mentor: $mentor, graphQLUpdate: $graphQLUpdate, s3VideoMigrateUpdate: $s3VideoMigrateUpdate, answerMediaMigrateUpdate:$answerMediaMigrateUpdate)
+                        }
+                    }""",
+        "variables": variables,
+    }
+
+
+class MentorExportJson:
+    id: str
+    mentorInfo: MentorInfo
+    subjects: List[Subject]
+    questions: List[Question]
+    answers: List[Answer]
+    userQuestions: List[UserQuestion]
+
+@dataclass
+class ImportMentorGQLRequest:
+    mentor: str
+    json: MentorExportJson
+    replacedMentorDataChanges: ReplacedMentorDataChanges
+
+
+import_mentor_gql_response_schema = {
+    "type": "object",
+    "properties": {
+        "data": {
+            "type": "object",
+            "properties": {
+                "api": {
+                    "type": "object",
+                    "properties": {
+                        "mentorImport": {
+                            "type": "object",
+                            "properties": {
+                                "answers": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "object",
+                                        "properties": {
+                                            "hasUntransferredMedia": {
+                                                "type": ["boolean", "null"]
+                                            },
+                                            "question": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "_id": {"type": "string"},
+                                                },
+                                                "required": ["_id"],
+                                            },
+                                            "webMedia": {
+                                                "type": ["object", "null"],
+                                                "items": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "url": {"type": "string"},
+                                                        "type": {"type": "string"},
+                                                        "tag": {"type": "string"},
+                                                        "needsTransfer": {
+                                                            "type": "boolean"
+                                                        },
+                                                    },
+                                                },
+                                            },
+                                            "mobileMedia": {
+                                                "type": ["object", "null"],
+                                                "items": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "url": {"type": "string"},
+                                                        "type": {"type": "string"},
+                                                        "tag": {"type": "string"},
+                                                        "needsTransfer": {
+                                                            "type": "boolean"
+                                                        },
+                                                    },
+                                                },
+                                            },
+                                            "vttMedia": {
+                                                "type": ["object", "null"],
+                                                "items": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "url": {"type": "string"},
+                                                        "type": {"type": "string"},
+                                                        "tag": {"type": "string"},
+                                                        "needsTransfer": {
+                                                            "type": "boolean"
+                                                        },
+                                                    },
+                                                },
+                                            },
+                                        },
+                                        "required": [
+                                            "hasUntransferredMedia",
+                                            "question",
+                                            "webMedia",
+                                            "mobileMedia",
+                                            "vttMedia",
+                                        ],
+                                    },
+                                }
+                            },
+                            "required": ["answers"],
+                        }
+                    },
+                    "required": ["mentorImport"],
+                }
+            },
+            "required": ["api"],
+        }
+    },
+    "required": ["data"],
+}
+
+
+def import_mentor_gql_query(req: ImportMentorGQLRequest) -> GQLQueryBody:
+    return {
+        "query": """mutation MentorImport($mentor: ID!,$json:MentorImportJsonType!, $replacedMentorDataChanges: ReplacedMentorDataChangesType!){
+            api{
+                mentorImport(mentor: $mentor,json:$json, replacedMentorDataChanges: $replacedMentorDataChanges){
+                    answers{
+                        hasUntransferredMedia
+                        question{
+                            _id
+                        }
+                        webMedia{
+                            url
+                            type
+                            tag
+                            needsTransfer
+                        }
+                        mobileMedia{
+                            url
+                            type
+                            tag
+                            needsTransfer
+                        }
+                        vttMedia{
+                            url
+                            type
+                            tag
+                            needsTransfer
+                        }
+                    }
+                }
+            }
+            }""",
+        "variables": {
+            "mentor": req.mentor,
+            "json": req.json,
+            "replacedMentorDataChanges": req.replacedMentorDataChanges,
+        },
+    }
+
+
+
+def import_task_update_gql(req: ImportTaskGQLRequest) -> None:
+    headers = {"mentor-graphql-req": "true", "Authorization": f"bearer {get_api_key()}"}
+    body = import_task_update_gql_query(req)
+    res = requests.post(get_graphql_endpoint(), json=body, headers=headers)
+    res.raise_for_status()
+    tdjson = res.json()
+    if "errors" in tdjson:
+        raise Exception(json.dumps(tdjson.get("errors")))
+
+
+def media_update_gql(req: MediaUpdateRequest) -> GQLQueryBody:
+    variables = {"mentorId": req.mentor, "questionId": req.question}
+    if req.web_media:
+        variables["webMedia"] = req.web_media
+    if req.mobile_media:
+        variables["mobileMedia"] = req.mobile_media
+    if req.vtt_media:
+        variables["vttMedia"] = req.vtt_media
+
+    return {
+        "query": """mutation MediaUpdate($mentorId: ID!, $questionId: ID!, $webMedia: AnswerMediaInputType, $mobileMedia: AnswerMediaInputType, $vttMedia: AnswerMediaInputType) {
+            api {
+                mediaUpdate(mentorId: $mentorId, questionId: $questionId, webMedia: $webMedia, mobileMedia: $mobileMedia, vttMedia: $vttMedia)
+            }
+        }""",
+        "variables": variables,
+    }
+
+
+def update_media(req: MediaUpdateRequest) -> None:
+    headers = {"mentor-graphql-req": "true", "Authorization": f"bearer {get_api_key()}"}
+    body = media_update_gql(req)
+    res = requests.post(get_graphql_endpoint(), json=body, headers=headers)
+    res.raise_for_status()
+    tdjson = res.json()
+    if "errors" in tdjson:
+        raise Exception(json.dumps(tdjson.get("errors")))
+
+
+
+def validate_json(json_data, json_schema):
+    try:
+        jsonschema.validate(instance=json_data, schema=json_schema)
+    except jsonschema.exceptions.ValidationError as err:
+        log.error(msg=err)
+        raise Exception(err)
+
+
+def exec_graphql_with_json_validation(request_query, json_schema, **req_kwargs):
+    res = requests.post(get_graphql_endpoint(), json=request_query, **req_kwargs)
+    res.raise_for_status()
+    tdjson = res.json()
+    if "errors" in tdjson:
+        raise Exception(json.dumps(tdjson.get("errors")))
+    validate_json(tdjson, json_schema)
+    return tdjson
+
+class MentorImportMediaResponse:
+    url: str
+    type: str
+    tag: str
+    needsTransfer: bool
+
+
+class MentorImportQuestionResponse:
+    _id: str
+
+
+class MentorImportAnswersResponse:
+    hasUntransferredMedia: bool
+    question: MentorImportQuestionResponse
+    media: List[MentorImportMediaResponse]
+
+class MentorImportGQLResponse:
+    answers: List[MentorImportAnswersResponse]
+
+
+
+def get_media_list_from_answer_gql(answer_gql):
+    media_list = []
+    if answer_gql["webMedia"]:
+        media_list.append(answer_gql["webMedia"])
+    if answer_gql["mobileMedia"]:
+        media_list.append(answer_gql["mobileMedia"])
+    if answer_gql["vttMedia"]:
+        media_list.append(answer_gql["vttMedia"])
+    return media_list
+
+
+def import_mentor_gql(req: ImportMentorGQLRequest) -> MentorImportGQLResponse:
+    headers = {"mentor-graphql-req": "true", "Authorization": f"bearer {get_api_key()}"}
+    query = import_mentor_gql_query(req)
+    res = exec_graphql_with_json_validation(
+        query, import_mentor_gql_response_schema, headers=headers
+    )
+    res_data = res["data"]["api"]["mentorImport"]
+    import_response_data = {
+        "answers": list(
+            map(
+                lambda answer: {
+                    **answer,
+                    "media": get_media_list_from_answer_gql(answer),
+                },
+                res_data["answers"],
+            )
+        )
+    }
+    return import_response_data

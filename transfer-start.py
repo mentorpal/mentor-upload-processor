@@ -8,6 +8,7 @@ import base64
 import boto3
 import json
 import uuid
+import gzip
 from datetime import datetime
 from os import environ
 from module.logger import get_logger
@@ -19,7 +20,7 @@ from module.utils import create_json_response, is_authorized, load_sentry, requi
 
 load_sentry()
 log = get_logger("transfer-start")
-ttl_sec = environ.get("TTL_SEC", (60 * 60 * 24) * 20)  # 20 days
+ttl_sec = environ.get("TTL_SEC", (60 * 60 * 24) * 180) # 180 days
 aws_region = environ.get("REGION", "us-east-1")
 JOBS_TABLE_NAME = require_env("JOBS_TABLE_NAME")
 log.info(f"using table {JOBS_TABLE_NAME}")
@@ -61,9 +62,9 @@ def handler(event, context):
         }
         return create_json_response(401, data, event)
 
-    mentor_export_json = transfer_request["mentorExportJson"]
-    replace_mentor_data_changes = transfer_request["replacedMentorDataChanges"]
-
+    # this tends to be large so to avoid 400kb max item size:
+    compressed_body = gzip.compress(bytes(body, 'utf-8'))
+    
     graphql_update = {"status": "QUEUED"}
     s3_video_migration = {"status": "QUEUED", "answerMediaMigrations": []}
     import_task_create_gql(
@@ -74,8 +75,7 @@ def handler(event, context):
         "id": job_id,
         "mentor": mentor,
         "status": "QUEUED",
-        "mentorExportJson": mentor_export_json,
-        "replacedMentorDataChanges": replace_mentor_data_changes,
+        "payload": boto3.dynamodb.types.Binary(compressed_body),
         "created": datetime.now().isoformat(),
         # https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/time-to-live-ttl-before-you-start.html#time-to-live-ttl-before-you-start-formatting
         "ttl": int(datetime.now().timestamp()) + ttl_sec,

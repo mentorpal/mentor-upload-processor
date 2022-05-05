@@ -7,6 +7,8 @@
 import json
 import boto3
 import os
+import gzip
+from base64 import b64decode
 from module.utils import load_sentry, require_env
 from module.logger import get_logger
 from module.transfer import process_transfer_mentor
@@ -24,20 +26,21 @@ job_table = dynamodb.Table(JOBS_TABLE_NAME)
 
 def handler(event, context):
     log.debug(json.dumps(event))
-    records = filter(
-        lambda r: r.eventName == "INSERT" and r.dynamodb and r.dynamodb.NewImage,
-        event.Records,
-    )
-    log.debug("records to process: %s", records)
+    records = list(filter(
+        lambda r: r["eventName"] == "INSERT" and r["dynamodb"] and r["dynamodb"]["NewImage"],
+        event["Records"],
+    ))
+    log.debug("records to process: %s", len(records))
     for record in records:
-        # todo unmarshall
-        deserializer = boto3.dynamodb.types.TypeDeserializer()
-        job_request = {k: deserializer.deserialize(v) for k,v in record.dynamodb.NewImage.items()}
-        process_transfer_mentor(s3_client, s3_bucket, job_request)
+        payload = b64decode(record["dynamodb"]["NewImage"]["payload"]["B"]) # binary
+        request = gzip.decompress(payload).decode('utf-8')
+        # todo update status
+        process_transfer_mentor(s3_client, s3_bucket, request)
+        # todo update status
 
 
 # # for local debugging:
 # if __name__ == '__main__':
-#     with open('__events__/status-event.json.dist') as f:
+#     with open('__events__/transfer-process-event.json.dist') as f:
 #         event = json.loads(f.read())
 #         handler(event, {})
