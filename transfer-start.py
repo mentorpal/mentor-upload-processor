@@ -48,7 +48,7 @@ def handler(event, context):
         log.warn(err)
         data = {
             "error": "Bad Request",
-            "message": "mentor parameter missing",
+            "message": f"invalid payload: {err}",
         }
         return create_json_response(401, data, event)
 
