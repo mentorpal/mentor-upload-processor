@@ -110,8 +110,8 @@ def handler(event, context):
     return create_json_response(200, data, event)
 
 
-# for local debugging:
-if __name__ == "__main__":
-    with open("__events__/thumbnail-event.json") as f:
-        event = json.loads(f.read())
-        handler(event, {})
+# # for local debugging:
+# if __name__ == "__main__":
+#     with open("__events__/thumbnail-event.json") as f:
+#         event = json.loads(f.read())
+#         handler(event, {})
