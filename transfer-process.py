@@ -31,7 +31,9 @@ def handler(event, context):
     log.debug("records to process: %s", records)
     for record in records:
         # todo unmarshall
-        process_transfer_mentor(s3_client, s3_bucket, record.dynamodb.NewImage)
+        deserializer = boto3.dynamodb.types.TypeDeserializer()
+        job_request = {k: deserializer.deserialize(v) for k,v in record.dynamodb.NewImage.items()}
+        process_transfer_mentor(s3_client, s3_bucket, job_request)
 
 
 # # for local debugging:
