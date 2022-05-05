@@ -76,7 +76,7 @@ def handler(event, context):
         "status": "QUEUED",
         "mentorExportJson": mentor_export_json,
         "replacedMentorDataChanges": replace_mentor_data_changes,
-        "created": datetime.datetime.now().isoformat(),
+        "created": datetime.now().isoformat(),
         # https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/time-to-live-ttl-before-you-start.html#time-to-live-ttl-before-you-start-formatting
         "ttl": int(datetime.datetime.now().timestamp()) + ttl_sec,
     }
