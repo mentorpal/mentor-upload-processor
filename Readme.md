@@ -38,6 +38,17 @@ sls deploy -s <stage> --region <region>
 # where stage is one of dev|qa|prod
 ```
 
+## Manual test 
+
+To test the api via api gateway (dev is the stage, <id> is the getway id):
+
+```bash
+curl -H "Authorization: Bearer ey***" https://<id>.execute-api.us-east-1.amazonaws.com/dev/thumbnail \
+-F body='{"mentor":"6196af5e068d43dc686194f8"}' -F thumbnail=@profile.png
+curl -H "Authorization: Bearer ey***" -H "Content-Type: application/json" https://<id>.execute-api.us-east-1.amazonaws.com/dev/transfer/mentor --data-binary "@sample-payload.json"
+curl -H "Authorization: Bearer ey***" https://<id>.execute-api.us-east-1.amazonaws.com/dev/status/5e09da8f-d8cc-4d19-80d8-d94b28741a58
+```
+
 # Monitoring
 
 All lambdas use sentry to report issues. If processing fails, SQS will move messages to corresponding DLQ,
@@ -62,7 +73,13 @@ and make sure to adjust the FFMPEG_EXECUTABLE envvar.
 
 ## Asynchronous triggers
 
-In order to run handlers for asynchronous event triggers locally, e.g. events fired by `SNS` or `SQS`, execute `sls invoke --local -f <function>`. To define a custom event payload, create a `*event.json` file and point to its path with `sls invoke --local -f <function> -p <path_to_event.json>`. Be sure to commit a `.dist` version of it for other developers to be used.
+In order to run lambda handlers locally, you just need an event payload `*event.json` file.
+There's a few in the `./__events__` folder:
+
+```bash
+sls invoke --local -f <function> -p __events__/<event.json.dist>
+```
+
 
 **Example**
 
@@ -105,8 +122,8 @@ To debug in VS Code, use this config:
 
 # Tech debt
 
-- [ ] sls offline
-- [ ] xray
 - [ ] integration tests
-- [ ] put all *.py files into src/app
+- [ ] xray
+- [ ] put all *.py files into src/app ?
+- [ ] sls offline
 - [x] cicd pipeline
