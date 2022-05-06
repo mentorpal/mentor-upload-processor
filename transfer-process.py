@@ -38,9 +38,7 @@ def handler(event, context):
     for record in records:
         payload = b64decode(record["dynamodb"]["NewImage"]["payload"]["B"])  # binary
         request = json.loads(gzip.decompress(payload).decode("utf-8"))
-        # todo update status
         process_transfer_mentor(s3_client, s3_bucket, request)
-        # todo update status
 
 
 # # for local debugging:
