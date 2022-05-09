@@ -133,7 +133,8 @@ provider:
     SENTRY_DSN_MENTOR_UPLOAD: '${ssm:/mentorpal/upload/sentry_dsn}'
     TRANSCRIBE_INPUT_BUCKET: '${self:service}-transcribe-input-${self:provider.stage}'
     TRANSCRIBE_OUTPUT_BUCKET: '${self:service}-transcribe-output-${self:provider.stage}'
-
+    SIGNED_UPLOAD_BUCKET: '${self:service}-signed-upload-${self:provider.stage}'
+  
   # iam permissions for all lambda functions
   iam:
     role:
@@ -147,6 +148,7 @@ provider:
             - '${self:custom.stages.${self:provider.stage}.S3_STATIC_ARN}/*'
             - 'arn:aws:s3:::${self:provider.environment.TRANSCRIBE_INPUT_BUCKET}/*'
             - 'arn:aws:s3:::${self:provider.environment.TRANSCRIBE_OUTPUT_BUCKET}/*'
+            - 'arn:aws:s3:::${self:provider.environment.SIGNED_UPLOAD_BUCKET}/*'
         - Effect: Allow
           Action:
           - "transcribe:StartTranscriptionJob"
@@ -200,6 +202,7 @@ functions:
       - http:
           path: /thumbnail
           method: post
+          cors: true
           authorizer:
             name: authorizer_func
             resultTtlInSeconds: 300
@@ -216,6 +219,7 @@ functions:
       - http:
           path: /transfer/mentor
           method: post
+          cors: true
           authorizer:
             name: authorizer_func
             resultTtlInSeconds: 300
@@ -232,6 +236,7 @@ functions:
       - http:
           path: /transfer/status/{id}
           method: get
+          cors: true
           authorizer:
             name: authorizer_func
             resultTtlInSeconds: 300
@@ -259,6 +264,21 @@ functions:
           filterPatterns:
             - eventName: [INSERT]
 
+  http_upload_url:
+    handler: upload-url.handler
+    memorySize: 256
+    timeout: 10
+    events:
+      - http:
+          path: /upload/url
+          method: get
+          cors: true
+          authorizer:
+            name: authorizer_func
+            resultTtlInSeconds: 300
+            identitySource: method.request.header.Authorization
+            type: token
+
   # http_answer_upload:
   #   handler: answer-upload.handler
   #   memorySize: 4096
@@ -267,6 +287,7 @@ functions:
   #     - http:
   #         path: /answer
   #         method: post
+  #         cors: true
   #         authorizer: 
   #           name: authorizer_func
   #           resultTtlInSeconds: 300
@@ -577,6 +598,26 @@ resources:
         TimeToLiveSpecification: 
           AttributeName: ttl
           Enabled: true
+
+    SignedUploadBucket:
+      Type: AWS::S3::Bucket
+      Properties:
+        BucketName: ${self:provider.environment.SIGNED_UPLOAD_BUCKET}
+        # videos are processed and uploaded to STATIC_S3 so clean them up:
+        LifecycleConfiguration:
+          Rules:
+          - Id: DeleteResultAfter7Days
+            Status: Enabled
+            ExpirationInDays: 30
+        CorsConfiguration:
+          CorsRules:
+            - AllowedMethods:
+                - PUT
+                - POST
+              AllowedOrigins:
+                - '*'
+              AllowedHeaders:
+                - '*'
 
   Outputs:
     ProcessUploadSnsTopicName:
