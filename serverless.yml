@@ -52,6 +52,7 @@ custom:
       S3_STATIC_ARN: ${ssm:/mentorpal/v2/s3_static_arn, ''}
       GRAPHQL_ENDPOINT: 'https://${ssm:/mentorpal/v2/alb_url, ""}/graphql'
       API_SECRET: ${ssm:/mentorpal/v2/shared/api_secret, ''}
+      JWT_SECRET: ${ssm:/mentorpal/v2/shared/jwt_secret, ''}
       ALERT_SNS_ARN: ${ssm:/mentorpal/v2/shared/sns_alert_topic_arn, ''}
     qa:
       S3_STATIC_ARN: ${ssm:/mentorpal/v2/s3_static_arn, ''}
@@ -59,6 +60,7 @@ custom:
       IS_SENTRY_ENABLED: true
       GRAPHQL_ENDPOINT: 'https://${ssm:/mentorpal/v2/alb_url, ""}/graphql'
       API_SECRET: ${ssm:/mentorpal/v2/shared/api_secret, ''}
+      JWT_SECRET: ${ssm:/mentorpal/v2/shared/jwt_secret, ''}
       ALERT_SNS_ARN: ${ssm:/mentorpal/v2/shared/sns_alert_topic_arn, ''}
     prod:
       LOG_LEVEL: 'info'
@@ -66,6 +68,7 @@ custom:
       GRAPHQL_ENDPOINT: 'https://${ssm:/mentorpal/cf/alb_url, ""}/graphql'
       S3_STATIC_ARN: ${ssm:/mentorpal/cf/s3_static_arn, ''}
       API_SECRET: ${ssm:/mentorpal/cf/shared/api_secret, ''}
+      JWT_SECRET: ${ssm:/mentorpal/cf/shared/jwt_secret, ''}
       ALERT_SNS_ARN: ${ssm:/mentorpal/cf/shared/sns_alert_topic_arn, ''}
 
   # serverless-layers requires a deployment bucket to be created before deploying this stack
@@ -148,7 +151,13 @@ provider:
           Action:
           - "transcribe:StartTranscriptionJob"
           Resource: "*"
-
+        - Effect: "Allow"
+          Action:
+            - dynamodb:GetItem
+            - dynamodb:PutItem
+            - dynamodb:UpdateItem
+          Resource:
+            Fn::GetAtt: [JobsTable, Arn]
 
 package:
 #  individually: false
@@ -180,6 +189,8 @@ layers:
 functions:
   authorizer_func:
     handler: authorizer.handler
+    environment:
+      JWT_SECRET: ${self:custom.stages.${self:provider.stage}.JWT_SECRET}
 
   http_thumbnail:
     handler: thumbnail.handler
@@ -194,6 +205,59 @@ functions:
             resultTtlInSeconds: 300
             identitySource: method.request.header.Authorization
             type: token
+
+  http_transfer_start:
+    handler: transfer-start.handler
+    memorySize: 512
+    timeout: 10
+    environment:
+      JOBS_TABLE_NAME: upload-jobs-${self:provider.stage}
+    events:
+      - http:
+          path: /transfer/mentor
+          method: post
+          authorizer:
+            name: authorizer_func
+            resultTtlInSeconds: 300
+            identitySource: method.request.header.Authorization
+            type: token
+
+  http_transfer_status:
+    handler: transfer-status.handler
+    memorySize: 256
+    timeout: 10
+    environment:
+      JOBS_TABLE_NAME: upload-jobs-${self:provider.stage}
+    events:
+      - http:
+          path: /transfer/status/{id}
+          method: get
+          authorizer:
+            name: authorizer_func
+            resultTtlInSeconds: 300
+            identitySource: method.request.header.Authorization
+            type: token
+          request:
+            parameters:
+              paths:
+                id: true
+
+  dbstream_transfer_process:
+    description: Triggered by new records in dynamo, implements mentor transfer
+    handler: transfer-process.handler
+    memorySize: 2048
+    timeout: 900 # max
+    environment:
+      JOBS_TABLE_NAME: upload-jobs-${self:provider.stage}
+    events:
+      - stream:
+          type: dynamodb
+          maximumRetryAttempts: 3
+          arn:
+            Fn::GetAtt: [JobsTable, StreamArn]
+          # to avoid triggers on status update, make sure it's only when a new job is added:
+          filterPatterns:
+            - eventName: [INSERT]
 
   # http_answer_upload:
   #   handler: answer-upload.handler
@@ -493,6 +557,26 @@ resources:
           - ${self:custom.stages.${self:provider.stage}.ALERT_SNS_ARN}
         OKActions:
           - ${self:custom.stages.${self:provider.stage}.ALERT_SNS_ARN}
+
+    JobsTable:
+      Type: AWS::DynamoDB::Table
+      DeletionPolicy: Delete
+      UpdateReplacePolicy: Delete
+      Properties:
+        TableName: upload-jobs-${self:provider.stage}
+        BillingMode: PAY_PER_REQUEST
+        StreamSpecification:
+          StreamViewType: NEW_IMAGE
+        AttributeDefinitions:
+          - AttributeName: id
+            AttributeType: S
+        KeySchema:
+          - AttributeName: id
+            KeyType: HASH
+        # to cleanup jobs after a while set this attribute as a number
+        TimeToLiveSpecification: 
+          AttributeName: ttl
+          Enabled: true
 
   Outputs:
     ProcessUploadSnsTopicName:
