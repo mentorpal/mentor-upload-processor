@@ -230,7 +230,7 @@ def process_transfer_mentor(s3_client, s3_bucket, req: ProcessTransferMentor):
                     finally:
                         try:
                             remove(file_path)
-                        except:
+                        except:  # noqa: E722
                             pass  # lambdas tmp files are not important
                 else:
                     answer_media_migrate_update = {
