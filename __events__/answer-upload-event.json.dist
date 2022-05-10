@@ -1,0 +1,44 @@
+{
+  "resource": "/answer",
+  "path": "/answer",
+  "httpMethod": "POST",
+  "headers": {
+    "accept": "*/*",
+    "Authorization": "Bearer eyJhb***",
+    "content-type": "application/json"
+  },
+  "multiValueHeaders": {
+    "accept": [
+      "*/*"
+    ],
+    "Authorization": [
+      "Bearer eyJhb***"
+    ],
+    "content-type": [
+      "application/json"
+    ],
+    "User-Agent": [
+      "curl/7.79.1"
+    ]
+  },
+  "queryStringParameters": null,
+  "multiValueQueryStringParameters": null,
+  "pathParameters": null,
+  "stageVariables": null,
+  "requestContext": {
+    "authorizer": {
+      "principalId": "apigateway.amazonaws.com",
+      "token": "{\"id\": \"6196af5e068d43dc686194ed\", \"role\": \"ADMIN\", \"mentorIds\": [\"6196af5e068d43dc686194f8\"], \"expirationDate\": \"2022-08-08T06:20:22.023Z\", \"iat\": 1652163622, \"exp\": 1659939622}"
+    },
+    "resourcePath": "/answer",
+    "httpMethod": "POST",
+    "requestTime": "10/May/2022:06:21:26 +0000",
+    "path": "/dev/answer",
+    "accountId": "100000000655",
+    "protocol": "HTTP/1.1",
+    "stage": "dev",
+    "requestTimeEpoch": 1652163686665
+  },
+  "body": "{\"mentor\":\"6196af5e068d43dc686194f8\",\"question\":\"6149a443a8bc832ca8c16f41\",\"video\":\"celery-short.mp4\"}",  
+  "isBase64Encoded": false
+}

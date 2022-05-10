@@ -22,6 +22,16 @@ FFMPEG_EXECUTABLE = os.environ.get("FFMPEG_EXECUTABLE", "/opt/ffmpeg/ffmpeg")
 log = logging.getLogger("media-tools")
 
 
+def assert_video_duration(video_file, min_length):
+    minfo = MediaInfo.parse(video_file, library_file=LIB_FILE)
+    try:
+        if len(minfo.video_tracks) == 0 or minfo.video_tracks[0].duration < min_length:
+            return False
+    except Exception as e:
+        log.warning(f"Failed to check video duration: {e}")
+    return True
+
+
 def has_audio(audio_or_video_file: str) -> bool:
     media_info = MediaInfo.parse(audio_or_video_file, library_file=LIB_FILE)
     return len(media_info.audio_tracks) > 0
