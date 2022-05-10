@@ -143,12 +143,19 @@ provider:
           Action:
             - "s3:PutObject"
             - "s3:GetObject"
-            - "s3:ListBucket"
           Resource:
             - '${self:custom.stages.${self:provider.stage}.S3_STATIC_ARN}/*'
             - 'arn:aws:s3:::${self:provider.environment.TRANSCRIBE_INPUT_BUCKET}/*'
             - 'arn:aws:s3:::${self:provider.environment.TRANSCRIBE_OUTPUT_BUCKET}/*'
             - 'arn:aws:s3:::${self:provider.environment.SIGNED_UPLOAD_BUCKET}/*'
+        - Effect: "Allow"
+          Action:
+            - "s3:ListBucket"
+          Resource:
+            - '${self:custom.stages.${self:provider.stage}.S3_STATIC_ARN}'
+            - 'arn:aws:s3:::${self:provider.environment.TRANSCRIBE_INPUT_BUCKET}'
+            - 'arn:aws:s3:::${self:provider.environment.TRANSCRIBE_OUTPUT_BUCKET}'
+            - 'arn:aws:s3:::${self:provider.environment.SIGNED_UPLOAD_BUCKET}'
         - Effect: Allow
           Action:
           - "transcribe:StartTranscriptionJob"
@@ -160,6 +167,11 @@ provider:
             - dynamodb:UpdateItem
           Resource:
             Fn::GetAtt: [JobsTable, Arn]
+        - Effect: "Allow"
+          Action:
+            - sns:Publish
+          Resource:
+            Ref: ProcessUploadSnsTopic
 
 package:
 #  individually: false
@@ -279,24 +291,27 @@ functions:
             identitySource: method.request.header.Authorization
             type: token
 
-  # http_answer_upload:
-  #   handler: answer-upload.handler
-  #   memorySize: 4096
-  #   timeout: 30 # 30sec is max for http requests
-  #   events:
-  #     - http:
-  #         path: /answer
-  #         method: post
-  #         cors: true
-  #         authorizer: 
-  #           name: authorizer_func
-  #           resultTtlInSeconds: 300
-  #           identitySource: method.request.header.Authorization
-  #           type: token
-  #   layers:
-  #     # binaries gets named "Binaries"+"LambdaLayer":
-  #     # see https://www.serverless.com/framework/docs/providers/aws/guide/layers#using-your-layers
-  #     - { Ref: BinariesLambdaLayer }
+  http_answer_upload:
+    handler: answer-upload.handler
+    memorySize: 4096
+    timeout: 30 # 30sec is max for http requests
+    environment:
+      UPLOAD_SNS_ARN:
+        Ref: ProcessUploadSnsTopic
+    events:
+      - http:
+          path: /upload/answer
+          method: post
+          cors: true
+          authorizer: 
+            name: authorizer_func
+            resultTtlInSeconds: 300
+            identitySource: method.request.header.Authorization
+            type: token
+    layers:
+      # binaries gets named "Binaries"+"LambdaLayer":
+      # see https://www.serverless.com/framework/docs/providers/aws/guide/layers#using-your-layers
+      - { Ref: BinariesLambdaLayer }
   
   answer-transcode-web:
     handler: answer-transcode-web.handler
@@ -437,7 +452,7 @@ resources:
           - Protocol: sqs
             Endpoint: 
               Fn::GetAtt: [TranscribeQueue, Arn]
-
+  # TODO remove
     SnsPublishPolicy:
       Type: AWS::SNS::TopicPolicy
       Properties:
@@ -504,6 +519,7 @@ resources:
             Status: Enabled
             ExpirationInDays: 7
 
+  # TODO remove
     ProcessUploadSnsTopicArn:
       Type: AWS::SSM::Parameter
       Properties:

@@ -795,3 +795,59 @@ def import_mentor_gql(req: ImportMentorGQLRequest) -> MentorImportGQLResponse:
         )
     }
     return import_response_data
+
+
+@dataclass
+class UploadTaskRequest:
+    mentor: str
+    question: str
+    trim_upload_task: TaskInfo
+    transcode_web_task: TaskInfo
+    transcode_mobile_task: TaskInfo
+    transcribe_task: TaskInfo
+    transcript: str = None
+    original_media: Media = None
+
+
+def upload_answer_and_task_req_gql(
+    answer_req: AnswerUpdateRequest, task_req: UploadTaskRequest
+) -> GQLQueryBody:
+    variables = {}
+    variables["mentorId"] = answer_req.mentor
+    variables["questionId"] = answer_req.question
+
+    variables["answer"] = {}
+    if answer_req.transcript:
+        variables["answer"]["transcript"] = answer_req.transcript
+    if answer_req.has_edited_transcript is not None:
+        variables["answer"]["hasEditedTranscript"] = answer_req.has_edited_transcript
+
+    variables["status"] = {
+        "transcodeWebTask": task_req.transcode_web_task,
+        "transcodeMobileTask": task_req.transcode_mobile_task,
+        "transcribeTask": task_req.transcribe_task,
+        "trimUploadTask": task_req.trim_upload_task,
+    }
+    if task_req.transcript:
+        variables["status"]["transcript"] = task_req.transcript
+    return {
+        "query": """mutation UpdateUploadAnswerAndTaskStatus($mentorId: ID!, $questionId: ID!, $answer: UploadAnswerType!, $status: UploadTaskInputType!) {
+            api {
+                uploadAnswer(mentorId: $mentorId, questionId: $questionId, answer: $answer)
+                uploadTaskUpdate(mentorId: $mentorId, questionId: $questionId, status: $status)
+            }
+        }""",
+        "variables": variables,
+    }
+
+
+def upload_answer_and_task_update(
+    answer_req: AnswerUpdateRequest, task_req: UploadTaskRequest
+) -> None:
+    headers = {"mentor-graphql-req": "true", "Authorization": f"bearer {get_api_key()}"}
+    body = upload_answer_and_task_req_gql(answer_req, task_req)
+    res = requests.post(get_graphql_endpoint(), json=body, headers=headers)
+    res.raise_for_status()
+    tdjson = res.json()
+    if "errors" in tdjson:
+        raise Exception(json.dumps(tdjson.get("errors")))
