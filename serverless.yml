@@ -49,6 +49,7 @@ custom:
       API_SECRET: ${ssm:/mentorpal/v2/shared/api_secret, ''}
       JWT_SECRET: ${ssm:/mentorpal/v2/shared/jwt_secret, ''}
       ALERT_SNS_ARN: ${ssm:/mentorpal/v2/shared/sns_alert_topic_arn, ''}
+      WEBACL_ARN: '${ssm:/mentorpal/mentor-upload-processor/qa/firewall/WEBACL_ARN}'
     qa:
       S3_STATIC_ARN: ${ssm:/mentorpal/v2/s3_static_arn, ''}
       LOG_LEVEL: 'debug'
@@ -57,6 +58,7 @@ custom:
       API_SECRET: ${ssm:/mentorpal/v2/shared/api_secret, ''}
       JWT_SECRET: ${ssm:/mentorpal/v2/shared/jwt_secret, ''}
       ALERT_SNS_ARN: ${ssm:/mentorpal/v2/shared/sns_alert_topic_arn, ''}
+      WEBACL_ARN: '${ssm:/mentorpal/mentor-upload-processor/qa/firewall/WEBACL_ARN}'
     prod:
       LOG_LEVEL: 'info'
       IS_SENTRY_ENABLED: true
@@ -65,6 +67,8 @@ custom:
       API_SECRET: ${ssm:/mentorpal/cf/shared/api_secret, ''}
       JWT_SECRET: ${ssm:/mentorpal/cf/shared/jwt_secret, ''}
       ALERT_SNS_ARN: ${ssm:/mentorpal/cf/shared/sns_alert_topic_arn, ''}
+      # TODO 
+      WEBACL_ARN: '${ssm:/mentorpal/mentor-upload-processor/prod/firewall/WEBACL_ARN}'
 
   # serverless-layers requires a deployment bucket to be created before deploying this stack
   serverless-layers:
@@ -625,6 +629,13 @@ resources:
                 - '*'
               AllowedHeaders:
                 - '*'
+
+    FirewallAssociation:
+      Type: AWS::WAFv2::WebACLAssociation
+      Properties:
+        ResourceArn:
+          Fn::Sub: 'arn:aws:apigateway:${AWS::Region}::/restapis/${ApiGatewayRestApi}/stages/${self:provider.stage}'
+        WebACLArn: '${self:custom.stages.${self:provider.stage}.WEBACL_ARN}'
 
   Outputs:
     ProcessUploadSnsTopicName:
