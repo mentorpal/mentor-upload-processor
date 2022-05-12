@@ -5,6 +5,7 @@
 ## The full terms of this copyright and license should always be found in the root directory of this software deliverable as "license.txt" and if these terms are not found with this software, please contact the USC Stevens Center for the full license.
 ##
 
+# todo: rename to mentorpal-upload-processor
 service: mentorpal-upload-sm
 
 # pin to only deploy with a specific Serverless version
@@ -13,7 +14,6 @@ variablesResolutionMode: 20210326
 
 plugins:
   - serverless-deployment-bucket
-  - serverless-offline
   - serverless-layers
   - serverless-domain-manager
 
@@ -36,11 +36,6 @@ custom:
     autoDomain: false
 
   stages:
-    offline:
-      LOG_LEVEL: 'trace'
-      S3_STATIC_ARN: arn:aws:s3:::static-mentorpal-offline-origin
-      GRAPHQL_ENDPOINT: 'http://127.0.0.1:3001/graphql'
-      IS_SENTRY_ENABLED: false
     dev:
       LOG_LEVEL: 'trace'
       IS_SENTRY_ENABLED: false
@@ -79,9 +74,6 @@ custom:
         compatibleRuntimes:
           - python3.8
         # applies to all lambdas
-
-  # serverless-offline:
-  #   useDocker: true
 
 provider:
   name: aws
@@ -122,7 +114,6 @@ provider:
       fullExecutionData: false
 
   environment:
-    # IS_OFFLINE: ${env:IS_OFFLINE}
     STAGE: ${self:provider.stage}
     PYTHON_ENV: careerfair-${self:provider.stage}
     S3_STATIC_ARN: ${self:custom.stages.${self:provider.stage}.S3_STATIC_ARN}
