@@ -1,5 +1,5 @@
 module "pipeline" {
-  source                  = "git@github.com:mentorpal/terraform-modules//modules/trunk_cicd_pipeline?ref=tags/v1.1.0"
+  source                  = "git@github.com:mentorpal/terraform-modules//modules/trunk_cicd_pipeline?ref=tags/v1.2.1"
   codestar_connection_arn = var.codestar_connection_arn
   project_name            = "mentor-upload-processor"
   github_repo_name        = "mentor-upload-processor"
