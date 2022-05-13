@@ -39,15 +39,18 @@ thumbnail_upload_json_schema = {
 
 # TODO: probably want to force the size and quality of this image
 def handler(event, context):
-    log.debug(json.dumps(event))
+    # log.debug(json.dumps(event))
     if "body" not in event:
         data = {
             "error": "Bad Request",
             "message": "body payload is required",
         }
         return create_json_response(401, data, event)
+    content_type_casing = (
+        "content-type" if ("content-type" in event["headers"]) else "Content-Type"
+    )
 
-    c_type, c_data = parse_header(event["headers"]["Content-Type"])
+    c_type, c_data = parse_header(event["headers"][content_type_casing])
     if c_type != "multipart/form-data":
         data = {
             "error": "Bad Request",
@@ -61,7 +64,7 @@ def handler(event, context):
         body = event["body"]
     environ = {"REQUEST_METHOD": "POST"}
     headers = {
-        "content-type": event["headers"]["Content-Type"],
+        "content-type": event["headers"][content_type_casing],
         # "content-length": event['headers']["Content-Length"], # curl didnt send it!?
     }
 
