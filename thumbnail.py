@@ -39,7 +39,7 @@ thumbnail_upload_json_schema = {
 
 # TODO: probably want to force the size and quality of this image
 def handler(event, context):
-    # log.debug(json.dumps(event))
+    log.debug(json.dumps(event))
     if "body" not in event:
         data = {
             "error": "Bad Request",
