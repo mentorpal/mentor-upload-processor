@@ -76,11 +76,11 @@ def append_secure_headers(headers):
 
 
 def append_cors_headers(headers, event):
-    # origin = environ.get("CORS_ORIGIN", "*")
+    origin = environ.get("CORS_ORIGIN", "*")
     # TODO specify allowed list of origins and if event["headers"]["origin"] is one of them then allow it
     # if "origin" in event["headers"] and getenv.array('CORS_ORIGIN').includes(event["headers"]["origin"]):
     #     origin = event["headers"]["origin"]
-    # headers["Access-Control-Allow-Origin"] = origin
+    headers["Access-Control-Allow-Origin"] = origin
     headers["Access-Control-Allow-Origin"] = "*"
     headers["Access-Control-Allow-Headers"] = "GET,PUT,POST,DELETE,OPTIONS"
     headers[
