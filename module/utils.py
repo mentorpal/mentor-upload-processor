@@ -16,6 +16,7 @@ from typing import Any, Dict, Union, Tuple
 log = get_logger()
 FFMPEG_EXECUTABLE = os.environ.get("FFMPEG_EXECUTABLE", "/opt/ffmpeg/ffmpeg")
 
+
 def require_env(n: str) -> str:
     env_val = environ.get(n, "")
     if not env_val:
@@ -124,7 +125,7 @@ def video_trim(
     ff = ffmpy.FFmpeg(
         inputs={str(input_file): None},
         outputs={str(output_file): output_args_trim_video(start_secs, end_secs)},
-        executable=FFMPEG_EXECUTABLE
+        executable=FFMPEG_EXECUTABLE,
     )
     ff.run()
     log.debug(ff)
