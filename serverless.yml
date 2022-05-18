@@ -128,6 +128,7 @@ provider:
     GRAPHQL_ENDPOINT: ${self:custom.stages.${self:provider.stage}.GRAPHQL_ENDPOINT}
     API_SECRET: ${self:custom.stages.${self:provider.stage}.API_SECRET}
     IS_SENTRY_ENABLED: ${self:custom.stages.${self:provider.stage}.IS_SENTRY_ENABLED}
+    STATIC_URL_BASE: ${self:custom.stages.${self:provider.stage}.STATIC_URL_BASE}
     SENTRY_DSN_MENTOR_UPLOAD: '${ssm:/mentorpal/upload/sentry_dsn}'
     TRANSCRIBE_INPUT_BUCKET: '${self:service}-transcribe-input-${self:provider.stage}'
     TRANSCRIBE_OUTPUT_BUCKET: '${self:service}-transcribe-output-${self:provider.stage}'
