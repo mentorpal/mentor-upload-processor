@@ -48,6 +48,7 @@ custom:
       GRAPHQL_ENDPOINT: 'https://${ssm:/mentorpal/v2/alb_url, ""}/graphql'
       API_SECRET: ${ssm:/mentorpal/v2/shared/api_secret, ''}
       JWT_SECRET: ${ssm:/mentorpal/v2/shared/jwt_secret, ''}
+      STATIC_URL_BASE: ${ssm:/mentorpal/v2/shared/static_url_base, ''}
       ALERT_SNS_ARN: ${ssm:/mentorpal/v2/shared/sns_alert_topic_arn, ''}
       WEBACL_ARN: '${ssm:/mentorpal/mentor-upload-processor/qa/firewall/WEBACL_ARN}'
     qa:
@@ -57,6 +58,7 @@ custom:
       GRAPHQL_ENDPOINT: 'https://${ssm:/mentorpal/v2/alb_url, ""}/graphql'
       API_SECRET: ${ssm:/mentorpal/v2/shared/api_secret, ''}
       JWT_SECRET: ${ssm:/mentorpal/v2/shared/jwt_secret, ''}
+      STATIC_URL_BASE: ${ssm:/mentorpal/v2/shared/static_url_base, ''}
       ALERT_SNS_ARN: ${ssm:/mentorpal/v2/shared/sns_alert_topic_arn, ''}
       WEBACL_ARN: '${ssm:/mentorpal/mentor-upload-processor/qa/firewall/WEBACL_ARN}'
     prod:
@@ -67,6 +69,7 @@ custom:
       API_SECRET: ${ssm:/mentorpal/cf/shared/api_secret, ''}
       JWT_SECRET: ${ssm:/mentorpal/cf/shared/jwt_secret, ''}
       ALERT_SNS_ARN: ${ssm:/mentorpal/cf/shared/sns_alert_topic_arn, ''}
+      STATIC_URL_BASE: ${ssm:/mentorpal/cf/shared/static_url_base, ''}
       # TODO 
       WEBACL_ARN: '${ssm:/mentorpal/mentor-upload-processor/prod/firewall/WEBACL_ARN}'
 

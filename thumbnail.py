@@ -19,6 +19,7 @@ from module.api import (
 
 from module.logger import get_logger
 from module.utils import create_json_response, s3_bucket, is_authorized, load_sentry
+from util import require_env
 
 
 load_sentry()
@@ -107,7 +108,7 @@ def handler(event, context):
     mentor_thumbnail_update(
         MentorThumbnailUpdateRequest(mentor=mentor, thumbnail=thumbnail_path)
     )
-    static_url_base = environ.get("STATIC_URL_BASE", "")
+    static_url_base = require_env("STATIC_URL_BASE")
     data = {"data": {"thumbnail": urljoin(static_url_base, thumbnail_path)}}
 
     return create_json_response(200, data, event)
