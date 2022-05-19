@@ -71,7 +71,7 @@ def create_task_list(trim, has_edited_transcript):
         {
             "task_name": "trim-upload",
             "task_id": str(uuid.uuid4()),
-            "status": "QUEUED",
+            "status": "DONE",
         }
         if trim
         else None
