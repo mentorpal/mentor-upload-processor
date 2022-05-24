@@ -236,6 +236,24 @@ functions:
             resultTtlInSeconds: 300
             identitySource: method.request.header.Authorization
             type: token
+  http_regen_vtt:
+    handler: regen-vtt.handler
+    memorySize: 512
+    timeout: 10
+    events:
+      - http:
+          path: /regen_vtt
+          method: post
+          cors: true
+          authorizer:
+            name: authorizer_func
+            resultTtlInSeconds: 300
+            identitySource: method.request.header.Authorization
+            type: token
+    layers:
+      # binaries gets named "Binaries"+"LambdaLayer":
+      # see https://www.serverless.com/framework/docs/providers/aws/guide/layers#using-your-layers
+      - { Ref: BinariesLambdaLayer }
 
   http_transfer_status:
     handler: transfer-status.handler
