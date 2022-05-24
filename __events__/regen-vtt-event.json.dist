@@ -1,0 +1,86 @@
+{
+  "resource": "/regen_vtt",
+  "path": "/regen_vtt",
+  "httpMethod": "POST",
+  "headers": {
+    "accept": "*/*",
+    "Authorization": "Bearer eyJh***redacted",
+    "content-type": "application/json",
+    "Host": "6111111111.execute-api.us-east-1.amazonaws.com",
+    "User-Agent": "curl/7.79.1",
+    "X-Amzn-Trace-Id": "Root=1-6273c701-5bf7423b3f690a75054e0d1c",
+    "X-Forwarded-For": "32.164.106.239",
+    "X-Forwarded-Port": "443",
+    "X-Forwarded-Proto": "https"
+  },
+  "multiValueHeaders": {
+    "accept": [
+      "*/*"
+    ],
+    "Authorization": [
+      "Bearer eyJh***redacted"
+    ],
+    "content-type": [
+      "application/json"
+    ],
+    "Host": [
+      "1111111111.execute-api.us-east-1.amazonaws.com"
+    ],
+    "User-Agent": [
+      "curl/7.79.1"
+    ],
+    "X-Amzn-Trace-Id": [
+      "Root=1-6273c701-5bf7423b3f690a75054e0d1c"
+    ],
+    "X-Forwarded-For": [
+      "32.164.106.239"
+    ],
+    "X-Forwarded-Port": [
+      "443"
+    ],
+    "X-Forwarded-Proto": [
+      "https"
+    ]
+  },
+  "queryStringParameters": null,
+  "multiValueQueryStringParameters": null,
+  "pathParameters": null,
+  "stageVariables": null,
+  "requestContext": {
+    "resourceId": "dlrldg",
+    "authorizer": {
+      "principalId": "apigateway.amazonaws.com",
+      "integrationLatency": 650,
+      "token": "{\"id\": \"60bad2ab733e6a54b909a348\", \"role\": \"ADMIN\", \"mentorIds\": [\"60bad2ab733e6a54b909a351\"], \"iat\": 1651750784, \"exp\": 1659526784}"
+    },
+    "resourcePath": "/regen_vtt",
+    "httpMethod": "POST",
+    "extendedRequestId": "RpwIXFOKIAMF_0Q=",
+    "requestTime": "05/May/2022:12:45:54 +0000",
+    "path": "/dev/regen_vtt",
+    "accountId": "redacted",
+    "protocol": "HTTP/1.1",
+    "stage": "dev",
+    "domainPrefix": "6111111111",
+    "requestTimeEpoch": 1651754754173,
+    "requestId": "a86ac06e-481f-49cd-af59-8a48ad5d0ec6",
+    "identity": {
+      "cognitoIdentityPoolId": null,
+      "accountId": null,
+      "cognitoIdentityId": null,
+      "caller": null,
+      "sourceIp": "32.164.106.239",
+      "principalOrgId": null,
+      "accessKey": null,
+      "cognitoAuthenticationType": null,
+      "cognitoAuthenticationProvider": null,
+      "userArn": null,
+      "userAgent": "curl/7.79.1",
+      "user": null
+    },
+    "domainName": "6111111111.execute-api.us-east-1.amazonaws.com",
+    "apiId": "6111111111"
+  },
+  "body": "{\"mentor\":\"60bad2ab733e6a54b909a351\",\"question\":\"607766dec525ba87bf68e79b\"}",
+  "isBase64Encoded": false
+}
