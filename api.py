@@ -4,12 +4,16 @@
 #
 # The full terms of this copyright and license should always be found in the root directory of this software deliverable as "license.txt" and if these terms are not found with this software, please contact the USC Stevens Center for the full license.
 #
+from module.logger import get_logger
 from dataclasses import dataclass
 import json
 from os import environ
 from typing import TypedDict
 
 import requests
+import jsonschema
+
+log = get_logger("api")
 
 
 def get_graphql_endpoint() -> str:
@@ -249,3 +253,96 @@ def upload_task_status_update(req: UpdateTaskStatusRequest) -> None:
     tdjson = res.json()
     if "errors" in tdjson:
         raise Exception(json.dumps(tdjson.get("errors")))
+
+
+def validate_json(json_data, json_schema):
+    try:
+        jsonschema.validate(instance=json_data, schema=json_schema)
+    except jsonschema.exceptions.ValidationError as err:
+        log.error(msg=err)
+        raise Exception(err)
+
+
+def exec_graphql_with_json_validation(request_query, json_schema, **req_kwargs):
+    res = requests.post(get_graphql_endpoint(), json=request_query, **req_kwargs)
+    res.raise_for_status()
+    tdjson = res.json()
+    if "errors" in tdjson:
+        raise Exception(json.dumps(tdjson.get("errors")))
+    validate_json(tdjson, json_schema)
+    return tdjson
+
+
+fetch_answer_transcript_media_json_schema = {
+    "type": "object",
+    "properties": {
+        "data": {
+            "type": "object",
+            "properties": {
+                "answer": {
+                    "type": "object",
+                    "properties": {
+                        "transcript": {"type": "string"},
+                        "webMedia": {
+                            "type": ["object", "null"],
+                            "properties": {
+                                "type": {"type": "string"},
+                                "tag": {"type": "string"},
+                                "url": {"type": "string"},
+                            },
+                        },
+                        "mobileMedia": {
+                            "type": ["object", "null"],
+                            "properties": {
+                                "type": {"type": "string"},
+                                "tag": {"type": "string"},
+                                "url": {"type": "string"},
+                            },
+                        },
+                    },
+                    "required": ["transcript", "webMedia", "mobileMedia"],
+                }
+            },
+            "required": ["answer"],
+        },
+    },
+    "required": ["data"],
+}
+
+
+def fetch_answer_transcript_and_media_gql(mentor: str, question: str) -> GQLQueryBody:
+    return {
+        "query": """query Answer($mentor: ID!, $question: ID!) {
+            answer(mentor: $mentor, question: $question){
+                transcript
+                webMedia {
+                    type
+                    tag
+                    url
+                }
+                mobileMedia{
+                    type
+                    tag
+                    url
+                }
+            }
+        }""",
+        "variables": {"mentor": mentor, "question": question},
+    }
+
+
+def fetch_answer_transcript_and_media(mentor: str, question: str):
+    headers = {"mentor-graphql-req": "true", "Authorization": f"bearer {get_api_key()}"}
+    gql_query = fetch_answer_transcript_and_media_gql(mentor, question)
+    json_res = exec_graphql_with_json_validation(
+        gql_query, fetch_answer_transcript_media_json_schema, headers=headers
+    )
+    answer_data = json_res["data"]["answer"]
+    web_media = answer_data["webMedia"]
+    mobile_media = answer_data["mobileMedia"]
+    transcript = answer_data["transcript"]
+    if web_media is None and mobile_media is None:
+        raise Exception(
+            f"No video media found for mentor {mentor} and question {question}"
+        )
+    return (transcript, web_media or mobile_media)
