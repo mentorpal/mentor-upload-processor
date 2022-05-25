@@ -39,11 +39,43 @@ def process_event(record):
     with tempfile.TemporaryDirectory() as work_dir:
         # since 2 files get dropped, there're 2 lambda invocations
         # its possible that not both files are in s3 when lambda runs first time
+
         try:
             job_file = os.path.join(work_dir, "transcribe.json")
             s3.download_file(
                 record["s3"]["bucket"]["name"], f"{s3_path}/transcribe.json", job_file
             )
+        except botocore.exceptions.ClientError as e:
+            # https://boto3.amazonaws.com/v1/documentation/api/latest/guide/error-handling.html
+            if e.response["Error"]["Code"] == "404":
+                log.info("failed to fetch transcribe json")
+                return
+            raise e
+        with open(job_file, "r") as f:
+            job = json.loads(f.read())
+            transcript = job["results"]["transcripts"][0]["transcript"]
+            log.debug(transcript)
+
+        # If there is no transcript, then a vtt file will never be produced by the AWS transcription job, so we're done
+        if transcript == "":
+            log.debug("No transcript was produced, skipping check for vtt file")
+            upload_answer_and_task_status_update(
+                AnswerUpdateRequest(
+                    mentor=mentor,
+                    question=question,
+                    transcript=transcript,
+                    has_edited_transcript=False,
+                ),
+                UpdateTaskStatusRequest(
+                    mentor=mentor,
+                    question=question,
+                    transcript=transcript,
+                    transcribe_task={"status": "DONE"},
+                ),
+            )
+            return
+
+        try:
             vtt_file = os.path.join(work_dir, "transcribe.vtt")
             s3.download_file(
                 record["s3"]["bucket"]["name"], f"{s3_path}/transcribe.vtt", vtt_file
@@ -51,15 +83,10 @@ def process_event(record):
         except botocore.exceptions.ClientError as e:
             # https://boto3.amazonaws.com/v1/documentation/api/latest/guide/error-handling.html
             if e.response["Error"]["Code"] == "404":
-                # on the second invocation both files will be present so this should not happen twice
-                log.info("failed to fetch transcript and subtitle")
+                log.info("failed to fetch subtitle vtt")
                 return
             raise e
 
-        with open(job_file, "r") as f:
-            job = json.loads(f.read())
-            transcript = job["results"]["transcripts"][0]["transcript"]
-            log.debug(transcript)
         s3.upload_file(
             vtt_file,
             s3_bucket,
