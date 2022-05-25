@@ -48,9 +48,8 @@ def handler(event, context):
             video_media,
         ) = fetch_answer_transcript_and_media(mentor, question)
         transcript_to_vtt(video_media["url"], vtt_file_path, transcript)
-        video_path_base = f"videos/{mentor}/{question}/"
         if os.path.isfile(vtt_file_path):
-            item_path = f"{video_path_base}en.vtt"
+            item_path = f"videos/{mentor}/{question}/en.vtt"
             s3.upload_file(
                 str(vtt_file_path),
                 s3_bucket,
