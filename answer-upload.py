@@ -26,6 +26,7 @@ from module.api import (
     upload_answer_and_task_update,
     AnswerUpdateRequest,
     UploadTaskRequest,
+    upload_answer_update,
 )
 from module.logger import get_logger
 
@@ -80,9 +81,22 @@ def create_task_list(trim, has_edited_transcript):
     return transcode_web_task, transcode_mobile_task, transcribe_task, trim_upload_task
 
 
-def upload_to_s3(file_path, s3_path):
+def upload_to_s3(file_path, s3_path, mentor, question):
     log.info("uploading %s to %s", file_path, s3_path)
+
     # to prevent data inconsistency by partial failures (new web.mp3 - old transcript...)
+    # first remove old video urls from DB
+    upload_answer_update(
+        AnswerUpdateRequest(
+            mentor,
+            question,
+            web_media={"type": "video", "tag": "web", "url": ""},
+            mobile_media={"type": "video", "tag": "mobile", "url": ""},
+            vtt_media={"type": "subtitles", "tag": "en", "url": ""},
+        )
+    )
+
+    # then remove old videos in s3
     all_artifacts = ["original.mp4", "web.mp4", "mobile.mp4", "en.vtt"]
     s3_client.delete_objects(
         Bucket=s3_bucket,
@@ -182,7 +196,7 @@ def handler(event, context):
 
         s3_path = f"videos/{mentor}/{question}"
         # this will overwrite any existing file
-        upload_to_s3(file_path, s3_path)
+        upload_to_s3(file_path, s3_path, mentor, question)
 
     (
         transcode_web_task,
