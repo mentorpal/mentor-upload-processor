@@ -85,7 +85,7 @@ def upload_to_s3(file_path, s3_path, mentor, question):
     log.info("uploading %s to %s", file_path, s3_path)
 
     # to prevent data inconsistency by partial failures (new web.mp3 - old transcript...)
-    # first remove old video urls from DB
+    # first remove old media urls from DB
     upload_answer_update(
         AnswerUpdateRequest(
             mentor,
@@ -96,7 +96,7 @@ def upload_to_s3(file_path, s3_path, mentor, question):
         )
     )
 
-    # then remove old videos in s3
+    # then remove old media in s3
     all_artifacts = ["original.mp4", "web.mp4", "mobile.mp4", "en.vtt"]
     s3_client.delete_objects(
         Bucket=s3_bucket,
