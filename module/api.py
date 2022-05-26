@@ -809,6 +809,42 @@ class UploadTaskRequest:
     original_media: Media = None
 
 
+def upload_answer_update_gql(answer_req: AnswerUpdateRequest) -> GQLQueryBody:
+    variables = {}
+    variables["mentorId"] = answer_req.mentor
+    variables["questionId"] = answer_req.question
+    variables["answer"] = {}
+    if answer_req.transcript is not None:
+        variables["answer"]["transcript"] = answer_req.transcript
+    if answer_req.has_edited_transcript is not None:
+        variables["answer"]["hasEditedTranscript"] = answer_req.has_edited_transcript
+    if answer_req.vtt_media:
+        variables["answer"]["vttMedia"] = answer_req.vtt_media
+    if answer_req.web_media:
+        variables["answer"]["webMedia"] = answer_req.web_media
+    if answer_req.mobile_media:
+        variables["answer"]["mobileMedia"] = answer_req.mobile_media
+
+    return {
+        "query": """mutation UpdateUploadAnswerAndTaskStatus($mentorId: ID!, $questionId: ID!, $answer: UploadAnswerType!) {
+            api {
+                uploadAnswer(mentorId: $mentorId, questionId: $questionId, answer: $answer)
+            }
+        }""",
+        "variables": variables,
+    }
+
+
+def upload_answer_update(answer_req: AnswerUpdateRequest) -> None:
+    headers = {"mentor-graphql-req": "true", "Authorization": f"bearer {get_api_key()}"}
+    body = upload_answer_update_gql(answer_req)
+    res = requests.post(get_graphql_endpoint(), json=body, headers=headers)
+    res.raise_for_status()
+    tdjson = res.json()
+    if "errors" in tdjson:
+        raise Exception(json.dumps(tdjson.get("errors")))
+
+
 def upload_answer_and_task_req_gql(
     answer_req: AnswerUpdateRequest, task_req: UploadTaskRequest
 ) -> GQLQueryBody:
