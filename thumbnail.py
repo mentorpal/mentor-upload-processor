@@ -77,8 +77,8 @@ def handler(event, context):
         }
         return create_json_response(401, data, event)
     log.debug("form keys: %s", form_data.keys())
-    if form_data["thumbnail"].type != "image/png":
-        data = {"error": "Bad Request", "message": "only png images are accepted"}
+    if form_data["thumbnail"].type != "image/png" and form_data["thumbnail"].type != "image/jpeg":
+        data = {"error": "Bad Request", "message": "only png/jpg images are accepted"}
         return create_json_response(401, data, event)
 
     thumbnail_request = json.loads(form_data["body"].value)
