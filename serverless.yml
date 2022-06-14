@@ -46,8 +46,8 @@ custom:
       # in effect prevent sls from catching errors (missing variable in ssm)!
       S3_STATIC_ARN: ${ssm:/mentorpal/newdev/s3_static_arn, ''}
       GRAPHQL_ENDPOINT: https://api-dev.mentorpal.org/graphql/graphql
-      API_SECRET: ${ssm:/mentorpal/v2/shared/api_secret, ''}
-      JWT_SECRET: ${ssm:/mentorpal/v2/shared/jwt_secret, ''}
+      API_SECRET: ${ssm:/mentorpal/newdev/shared/api_secret, ''}
+      JWT_SECRET: ${ssm:/mentorpal/newdev/shared/jwt_secret, ''}
       STATIC_URL_BASE: ${ssm:/mentorpal/newdev/shared/static_url_base, ''}
       ALERT_SNS_ARN: ${ssm:/mentorpal/v2/shared/sns_alert_topic_arn, ''}
       WEBACL_ARN: '${ssm:/mentorpal/mentor-upload-processor/qa/firewall/WEBACL_ARN}'
