@@ -49,8 +49,8 @@ custom:
       API_SECRET: ${ssm:/mentorpal/newdev/shared/api_secret, ''}
       JWT_SECRET: ${ssm:/mentorpal/newdev/shared/jwt_secret, ''}
       STATIC_URL_BASE: ${ssm:/mentorpal/newdev/shared/static_url_base, ''}
-      ALERT_SNS_ARN: ${ssm:/mentorpal/v2/shared/sns_alert_topic_arn, ''}
-      WEBACL_ARN: '${ssm:/mentorpal/mentor-upload-processor/qa/firewall/WEBACL_ARN}'
+      ALERT_SNS_ARN: 'no alerts in dev'
+      WEBACL_ARN: '${ssm:/mentorpal/newdev/api_firewall_arn}'
     qa:
       S3_STATIC_ARN: ${ssm:/mentorpal/v2/s3_static_arn, ''}
       LOG_LEVEL: debug
