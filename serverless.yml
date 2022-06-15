@@ -71,7 +71,7 @@ custom:
       ALERT_SNS_ARN: ${ssm:/mentorpal/cf/shared/sns_alert_topic_arn, ''}
       STATIC_URL_BASE: ${ssm:/mentorpal/cf/shared/static_url_base, ''}
       # TODO 
-      WEBACL_ARN: '${ssm:/mentorpal/mentor-upload-processor/prod/firewall/WEBACL_ARN}'
+      # WEBACL_ARN: '${ssm:/mentorpal/mentor-upload-processor/prod/firewall/WEBACL_ARN}'
 
   # serverless-layers requires a deployment bucket to be created before deploying this stack
   serverless-layers:
