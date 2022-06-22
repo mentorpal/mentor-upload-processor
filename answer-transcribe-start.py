@@ -21,7 +21,7 @@ from util import s3_bucket, require_env, load_sentry, fetch_from_graphql
 load_sentry()
 log = logger.get_logger("answer-transcribe-start-handler")
 
-aws_region = os.environ.get("AWS_REGION", "us-east-1")
+aws_region = require_env("REGION")
 input_bucket = require_env("TRANSCRIBE_INPUT_BUCKET")
 output_bucket = require_env("TRANSCRIBE_OUTPUT_BUCKET")
 s3 = boto3.client("s3")

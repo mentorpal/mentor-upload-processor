@@ -71,7 +71,6 @@ custom:
       ALERT_SNS_ARN: ${ssm:/mentorpal/cf/shared/sns_alert_topic_arn, ''}
       STATIC_URL_BASE: ${ssm:/mentorpal/cf/shared/static_url_base, ''}
       WEBACL_ARN: ${ssm:/mentorpal/cf/api_firewall_arn, ''}
-      REGION: ${self:provider.region}
 
   # serverless-layers requires a deployment bucket to be created before deploying this stack
   serverless-layers:
@@ -133,6 +132,8 @@ provider:
     TRANSCRIBE_INPUT_BUCKET: '${self:service}-transcribe-input-${self:provider.stage}'
     TRANSCRIBE_OUTPUT_BUCKET: '${self:service}-transcribe-output-${self:provider.stage}'
     SIGNED_UPLOAD_BUCKET: '${self:service}-signed-upload-${self:provider.stage}'
+    # AWS_REGION is reserved
+    REGION: ${self:provider.region}
   
   # iam permissions for all lambda functions
   iam:

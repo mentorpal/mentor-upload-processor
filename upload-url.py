@@ -8,7 +8,6 @@
 import boto3
 import json
 import uuid
-from os import environ
 from module.logger import get_logger
 from module.utils import create_json_response, load_sentry, require_env
 
@@ -16,7 +15,7 @@ from module.utils import create_json_response, load_sentry, require_env
 load_sentry()
 log = get_logger("upload-url")
 upload_bucket = require_env("SIGNED_UPLOAD_BUCKET")
-aws_region = environ.get("REGION", "us-east-1")
+aws_region = require_env("REGION")
 s3_client = boto3.client("s3", region_name=aws_region)
 
 

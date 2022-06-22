@@ -21,7 +21,7 @@ from module.utils import create_json_response, is_authorized, load_sentry, requi
 load_sentry()
 log = get_logger("transfer-start")
 ttl_sec = environ.get("TTL_SEC", (60 * 60 * 24) * 180)  # 180 days
-aws_region = environ.get("REGION", "us-east-1")
+aws_region = require_env("REGION")
 JOBS_TABLE_NAME = require_env("JOBS_TABLE_NAME")
 log.info(f"using table {JOBS_TABLE_NAME}")
 dynamodb = boto3.resource("dynamodb", region_name=aws_region)

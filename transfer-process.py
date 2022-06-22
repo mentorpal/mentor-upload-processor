@@ -6,7 +6,6 @@
 #
 import json
 import boto3
-import os
 import gzip
 from base64 import b64decode
 from module.utils import load_sentry, require_env
@@ -18,7 +17,7 @@ load_sentry()
 log = get_logger("transfer-process")
 JOBS_TABLE_NAME = require_env("JOBS_TABLE_NAME")
 log.info(f"using table {JOBS_TABLE_NAME}")
-aws_region = os.environ.get("REGION", "us-east-1")
+aws_region = require_env("REGION")
 s3_client = boto3.client("s3", region_name=aws_region)
 dynamodb = boto3.resource("dynamodb", region_name=aws_region)
 job_table = dynamodb.Table(JOBS_TABLE_NAME)

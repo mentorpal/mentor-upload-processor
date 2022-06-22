@@ -33,7 +33,7 @@ from module.logger import get_logger
 
 load_sentry()
 log = get_logger("upload-answer")
-aws_region = os.environ.get("REGION", "us-east-1")
+aws_region = require_env("REGION")
 s3_client = boto3.client("s3", region_name=aws_region)
 sns = boto3.client("sns", region_name=aws_region)
 upload_bucket = require_env("SIGNED_UPLOAD_BUCKET")

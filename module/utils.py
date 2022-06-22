@@ -27,7 +27,7 @@ def require_env(n: str) -> str:
 s3_bucket = require_env("S3_STATIC_ARN").split(":")[-1]
 log.info("using s3 bucket %s", s3_bucket)
 
-aws_region = environ.get("AWS_REGION", "us-east-1")
+aws_region = require_env("REGION")
 
 
 def load_sentry():

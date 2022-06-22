@@ -8,7 +8,6 @@ import base64
 import boto3
 import json
 from datetime import datetime
-from os import environ
 from cgi import parse_header, FieldStorage
 from io import BytesIO
 from urllib.parse import urljoin
@@ -16,15 +15,13 @@ from module.api import (
     MentorThumbnailUpdateRequest,
     mentor_thumbnail_update,
 )
-
 from module.logger import get_logger
-from module.utils import create_json_response, s3_bucket, is_authorized, load_sentry
-from util import require_env
+from module.utils import create_json_response, s3_bucket, is_authorized, load_sentry, require_env
 
 
 load_sentry()
 log = get_logger("upload-answer")
-aws_region = environ.get("REGION", "us-east-1")
+aws_region = require_env("REGION")
 s3_client = boto3.client("s3", region_name=aws_region)
 
 
