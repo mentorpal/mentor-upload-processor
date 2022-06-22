@@ -8,9 +8,8 @@ env:
 phases:
   install:
     runtime-versions:
-      nodejs: 14
+      nodejs: 16
     commands:
-      - n 16 # workaround https://github.com/aws/aws-codebuild-docker-images/issues/490
       - NODE_ENV=dev npm ci
       - pyenv global $PYTHON_38_VERSION
       - python3 -m venv /root/venv
