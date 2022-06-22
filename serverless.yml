@@ -70,9 +70,8 @@ custom:
       JWT_SECRET: ${ssm:/mentorpal/cf/shared/jwt_secret, ''}
       ALERT_SNS_ARN: ${ssm:/mentorpal/cf/shared/sns_alert_topic_arn, ''}
       STATIC_URL_BASE: ${ssm:/mentorpal/cf/shared/static_url_base, ''}
-      # WEBACL_ARN: ${ssm:/mentorpal/cf/api_firewall_arn, ''}
-      WEBACL_ARN: ${ssm:/mentorpal/cf/api_firewall_arn}
-      REGION: 'us-west-2'
+      WEBACL_ARN: ${ssm:/mentorpal/cf/api_firewall_arn, ''}
+      REGION: ${self:provider.region}
 
   # serverless-layers requires a deployment bucket to be created before deploying this stack
   serverless-layers:
