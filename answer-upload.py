@@ -72,7 +72,9 @@ def create_task_list(trim, has_edited_transcript):
         {
             "task_name": "trim-upload",
             "task_id": str(uuid.uuid4()),
-            "status": "DONE",
+            "status": "QUEUED",
+            "start": trim["start"],
+            "end": trim["end"],
         }
         if trim
         else None
@@ -183,17 +185,6 @@ def handler(event, context):
             }
             return create_json_response(401, data, event)
 
-        if trim:
-            log.info("trimming file %s", trim)
-            trim_file = f"{file_path}-trim.mp4"
-            video_trim(
-                file_path,
-                trim_file,
-                trim["start"],
-                trim["end"],
-            )
-            file_path = trim_file  # from now on work with the trimmed file
-
         s3_path = f"videos/{mentor}/{question}"
         # this will overwrite any existing file
         upload_to_s3(file_path, s3_path, mentor, question)
@@ -242,7 +233,16 @@ def handler(event, context):
             },
         ),
     )
-    submit_job(req)
+    if trim:
+        # send sqs
+        log.info("sending trim job request %s", req)
+        sqs_msg = sns.publish(TopicArn=upload_arn, Message=json.dumps(req))
+        log.info("sqs message published %s", json.dumps(sqs_msg))
+    else:
+        log.info("sending transc* job request %s", req)
+        # todo test failure if we need to check sns_msg.ResponseMetadata.HTTPStatusCode != 200
+        sns_msg = sns.publish(TopicArn=upload_arn, Message=json.dumps(req))
+        log.info("sns message published %s", json.dumps(sns_msg))
 
     data = {
         "taskList": task_list,
@@ -251,8 +251,8 @@ def handler(event, context):
     return create_json_response(200, data, event)
 
 
-# for local debugging:
-if __name__ == "__main__":
-    with open("__events__/answer-upload-event.json.dist") as f:
-        event = json.loads(f.read())
-        handler(event, {})
+# # for local debugging:
+# if __name__ == "__main__":
+#     with open("__events__/answer-upload-event.json.dist") as f:
+#         event = json.loads(f.read())
+#         handler(event, {})
