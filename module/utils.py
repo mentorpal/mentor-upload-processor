@@ -44,7 +44,7 @@ def load_sentry():
             # Set traces_sample_rate to 1.0 to capture 100%
             # of transactions for performance monitoring.
             traces_sample_rate=0.20,
-            debug=environ.get("SENTRY_DEBUG_CLASSIFIER", "") == "true",
+            debug=environ.get("SENTRY_DEBUG_UPLOADER", "") == "true",
         )
 
 
