@@ -470,27 +470,6 @@ resources:
           - Protocol: sqs
             Endpoint: 
               Fn::GetAtt: [TranscribeQueue, Arn]
-  # TODO remove
-    SnsPublishPolicy:
-      Type: AWS::SNS::TopicPolicy
-      Properties:
-        PolicyDocument:
-          Version: "2012-10-17"
-          Statement:
-            - Sid: "${self:service}-sns-publish-account-${self:provider.stage}"
-              Effect: Allow
-              Principal: 
-                AWS: '*'
-              Resource: '*'
-              Action: SNS:Publish
-              Condition:
-                ArnLike:
-                  # allow mentor-upload user to send messages:
-                  aws:PrincipalArn:
-                    !Sub arn:aws:iam::${AWS::AccountId}:user/*
-
-        Topics:
-          - Ref: ProcessUploadSnsTopic
 
     SnsToSqsPolicy:
       Type: AWS::SQS::QueuePolicy
