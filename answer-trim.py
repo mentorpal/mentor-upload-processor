@@ -9,8 +9,7 @@ import boto3
 import tempfile
 import os
 
-from util import (
-    fetch_from_graphql,
+from module.utils import (
     s3_bucket,
     load_sentry,
     require_env,
@@ -68,8 +67,8 @@ def process_task(request):
         video_trim(
             work_file,
             trim_file,
-            stored_task["start"],
-            stored_task["end"],
+            request["trim_upload_task"]["start"],
+            request["trim_upload_task"]["end"],
         )
 
         s3_path = f"videos/{request['mentor']}/{request['question']}"

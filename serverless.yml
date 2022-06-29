@@ -321,8 +321,8 @@ functions:
     environment:
       UPLOAD_SNS_ARN:
         Ref: ProcessUploadSnsTopic
-      TRIM_SQS_ARN:
-        Fn::GetAtt: [TrimQueue, Arn]
+      TRIM_SQS_URL:
+        Ref: TrimQueue
     events:
       - http:
           path: /upload/answer

@@ -18,7 +18,6 @@ from module.utils import (
     is_authorized,
     load_sentry,
     require_env,
-    video_trim,
 )
 from module.api import (
     is_upload_in_progress,
@@ -39,6 +38,8 @@ sns = boto3.client("sns", region_name=aws_region)
 upload_bucket = require_env("SIGNED_UPLOAD_BUCKET")
 upload_arn = require_env("UPLOAD_SNS_ARN")
 log.info(f"upload sns arn: {upload_arn}")
+sqs_client = boto3.client("sqs", region_name=aws_region)
+trim_queue_url = require_env("TRIM_SQS_URL")
 
 
 def submit_job(req):
@@ -73,8 +74,6 @@ def create_task_list(trim, has_edited_transcript):
             "task_name": "trim-upload",
             "task_id": str(uuid.uuid4()),
             "status": "QUEUED",
-            "start": trim["start"],
-            "end": trim["end"],
         }
         if trim
         else None
@@ -234,9 +233,15 @@ def handler(event, context):
         ),
     )
     if trim:
-        # send sqs
         log.info("sending trim job request %s", req)
-        sqs_msg = sns.publish(TopicArn=upload_arn, Message=json.dumps(req))
+        # graphql does not support start and end so putting here for now:
+        trim_upload_task["start"] = trim["start"]
+        trim_upload_task["end"] = trim["end"]
+
+        sqs_msg = sqs_client.send_message(
+            QueueUrl=trim_queue_url,
+            MessageBody=json.dumps(req)
+        )        
         log.info("sqs message published %s", json.dumps(sqs_msg))
     else:
         log.info("sending transc* job request %s", req)
