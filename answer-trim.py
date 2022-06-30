@@ -84,7 +84,9 @@ def process_task(request):
 
         log.info("sending transc* job request %s", request)
         # todo test failure if we need to check sns_msg.ResponseMetadata.HTTPStatusCode != 200
-        sns_msg = sns.publish(TopicArn=upload_arn, Message=json.dumps({"request": request}))
+        sns_msg = sns.publish(
+            TopicArn=upload_arn, Message=json.dumps({"request": request})
+        )
         log.info("sns message published %s", json.dumps(sns_msg))
 
         upload_task_status_update(

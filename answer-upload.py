@@ -232,9 +232,8 @@ def handler(event, context):
         trim_upload_task["end"] = trim["end"]
 
         sqs_msg = sqs_client.send_message(
-            QueueUrl=trim_queue_url,
-            MessageBody=json.dumps(req)
-        )        
+            QueueUrl=trim_queue_url, MessageBody=json.dumps(req)
+        )
         log.info("sqs message published %s", json.dumps(sqs_msg))
     else:
         log.info("sending transc* job request %s", req)
