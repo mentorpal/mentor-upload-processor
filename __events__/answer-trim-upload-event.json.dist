@@ -1,0 +1,18 @@
+{
+  "Records": [{
+    "messageId": "0b7f89e5-9a1f-4010-8ee5-cb2fa0d2d6f6",
+    "receiptHandle": "AQEBZ/QpwS9NIb0tjf7ABUKtO27VP2JoExKkgbEYAtM1cndQaEX4uNj1RetTHzeNNtvOg2+jN78wjd6UpzmgxQo50h4VBbLNyTLc20ev7Ph4qDHGtZCI1+diU+BOKDimQsPjUBIuluCAA1wUrd4U7rCQxdlj6x8FVURq3t68mMzoo7h6TFmEqVz8upryNmLNBdLRJuK7zE6uqtkQc8UI9Xu/fYzjvrA5KJSa3PJD4xeXrfnkFinHCtFFJAv0e+TNocN9TMkdQekzQrai/9SCA4PazzMkR0XW+yh7Dnd5aLJVrNM7AyceDPedeIk1SsO2iajYq1w/FKGmm/pLfiE5kgC8eqSQnQYkNq4ruew68PVXokUkmqujWjPfp1Jm8hNzVY4Kkms2M6Ab7fJSErpPH4E3+Q==",
+    "body": "{\"request\": {\"mentor\": \"621c91dd301244fca42b0891\", \"question\": \"606d025d0092bd664b85bcb9\", \"video\": \"videos/621c91dd301244fca42b0891/606d025d0092bd664b85bcb9/original.mp4\", \"transcodeWebTask\": {\"task_name\": \"transcoding-web\", \"task_id\": \"0ebb837d-3da9-4719-bdb9-3a4ab32209d5\", \"status\": \"QUEUED\"}, \"transcodeMobileTask\": {\"task_name\": \"transcoding-mobile\", \"task_id\": \"335521e5-def6-4fa6-9cef-3ecf826e9465\", \"status\": \"QUEUED\"}, \"trimUploadTask\": {\"task_name\": \"trim-upload\", \"task_id\": \"54ac2144-8e93-4599-b896-65be1cf0db9f\", \"status\": \"QUEUED\", \"start\": 2.3409, \"end\": 10.4652}, \"transcribeTask\": {\"task_name\": \"transcribing\", \"task_id\": \"8879920b-5fdc-4fba-b874-bbbc9380b4c3\", \"status\": \"QUEUED\"}}}",
+    "attributes": {
+      "ApproximateReceiveCount": "2",
+      "SentTimestamp": "1656536429861",
+      "SenderId": "AROAZJTHKSXLVQD3M5UBL:mentorpal-upload-sm-dev-http_answer_upload",
+      "ApproximateFirstReceiveTimestamp": "1656536429868"
+    },
+    "messageAttributes": {},
+    "md5OfBody": "9411a34b9eef76f622b21fe84539625a",
+    "eventSource": "aws:sqs",
+    "eventSourceARN": "arn:aws:sqs:us-east-1:100000000655:upload-trim-queue-dev",
+    "awsRegion": "us-east-1"
+  }]
+}
