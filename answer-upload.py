@@ -42,13 +42,6 @@ sqs_client = boto3.client("sqs", region_name=aws_region)
 trim_queue_url = require_env("TRIM_SQS_URL")
 
 
-def submit_job(req):
-    log.info("publishing job request %s", req)
-    # todo test failure if we need to check sns_msg.ResponseMetadata.HTTPStatusCode != 200
-    sns_msg = sns.publish(TopicArn=upload_arn, Message=json.dumps(req))
-    log.info("sns message published %s", json.dumps(sns_msg))
-
-
 def create_task_list(trim, has_edited_transcript):
     transcode_web_task = {
         "task_name": "transcoding-web",

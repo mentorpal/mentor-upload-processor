@@ -15,6 +15,8 @@ from module.utils import (
     require_env,
     video_trim,
 )
+from util import fetch_from_graphql
+
 from api import (
     UpdateTaskStatusRequest,
     upload_task_status_update,
@@ -67,10 +69,10 @@ def process_task(request):
         video_trim(
             work_file,
             trim_file,
-            request["trim_upload_task"]["start"],
-            request["trim_upload_task"]["end"],
+            request["trimUploadTask"]["start"],
+            request["trimUploadTask"]["end"],
         )
-
+        log.info("trim completed")
         s3_path = f"videos/{request['mentor']}/{request['question']}"
         s3_client.upload_file(
             trim_file,
@@ -90,7 +92,7 @@ def handler(event, context):
     log.info(json.dumps(event))
     for record in event["Records"]:
         body = json.loads(str(record["body"]))
-        request = json.loads(str(body["Message"]))["request"]
+        request = body["request"]
         task = request["trimUploadTask"] if "trimUploadTask" in request else None
         if not task:
             log.warning("no trim task requested")
@@ -104,14 +106,14 @@ def handler(event, context):
                 UpdateTaskStatusRequest(
                     mentor=request["mentor"],
                     question=request["question"],
-                    trim_task={"status": "FAILED"},
+                    trim_upload_task={"status": "FAILED"},
                 )
             )
             raise x
 
 
 # # for local debugging:
-# if __name__ == "__main__":
-#     with open("__events__/answer-trim-event.json.dist") as f:
-#         event = json.loads(f.read())
-#         handler(event, {})
+if __name__ == "__main__":
+    with open("__events__/answer-trim-upload-event.json.dist") as f:
+        event = json.loads(f.read())
+        handler(event, {})

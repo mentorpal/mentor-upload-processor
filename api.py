@@ -106,6 +106,10 @@ def fetch_task_gql(mentor_id: str, question_id) -> GQLQueryBody:
                     task_id
                     status
                 }
+                trimUploadTask{
+                    task_id
+                    status
+                }
             }
         }""",
         "variables": {
