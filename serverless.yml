@@ -629,7 +629,7 @@ resources:
       Condition: CreateCloudWatchAlarm
       Properties:
         ActionsEnabled: true
-        AlarmName: 'Number of failed upload jobs ${self:resources.Resources.TranscodeWebDLQ.Properties.QueueName}'
+        AlarmName: 'Number of failed trim jobs ${self:resources.Resources.TrimDLQ.Properties.QueueName}'
         AlarmDescription: 'Number of failed trim jobs greater than zero'
         Namespace: 'AWS/SQS'
         Statistic: 'Sum'
