@@ -16,7 +16,13 @@ from module.api import (
     mentor_thumbnail_update,
 )
 from module.logger import get_logger
-from module.utils import create_json_response, s3_bucket, is_authorized, load_sentry, require_env
+from module.utils import (
+    create_json_response,
+    s3_bucket,
+    is_authorized,
+    load_sentry,
+    require_env,
+)
 
 
 load_sentry()
@@ -74,7 +80,10 @@ def handler(event, context):
         }
         return create_json_response(401, data, event)
     log.debug("form keys: %s", form_data.keys())
-    if form_data["thumbnail"].type != "image/png" and form_data["thumbnail"].type != "image/jpeg":
+    if (
+        form_data["thumbnail"].type != "image/png"
+        and form_data["thumbnail"].type != "image/jpeg"
+    ):
         data = {"error": "Bad Request", "message": "only png/jpg images are accepted"}
         return create_json_response(401, data, event)
 
