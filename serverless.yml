@@ -340,8 +340,8 @@ functions:
 
   answer-trim:
     handler: answer-trim.handler
-    memorySize: 2048 # needs cpu to run ffmpeg
-    timeout: 300
+    memorySize: 4096 # needs cpu to run ffmpeg
+    timeout: 600 # some videos take 5min or so
     environment:
       UPLOAD_SNS_ARN:
         Ref: ProcessUploadSnsTopic
@@ -459,7 +459,7 @@ resources:
       Properties:
         # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-sqs-queues.html
         QueueName: upload-trim-queue-${self:provider.stage}
-        VisibilityTimeout: 600 # AWS recommends 6 times lambdas timeout
+        VisibilityTimeout: 1200 # AWS recommends 6 times lambdas timeout
         RedrivePolicy:
           deadLetterTargetArn:
             Fn::GetAtt: [TrimDLQ, Arn]
