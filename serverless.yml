@@ -341,7 +341,7 @@ functions:
   answer-trim:
     handler: answer-trim.handler
     memorySize: 2048 # needs cpu to run ffmpeg
-    timeout: 120
+    timeout: 300
     environment:
       UPLOAD_SNS_ARN:
         Ref: ProcessUploadSnsTopic
@@ -459,44 +459,44 @@ resources:
       Properties:
         # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-sqs-queues.html
         QueueName: upload-trim-queue-${self:provider.stage}
-        VisibilityTimeout: 360 # AWS recommends 6 times lambdas timeout
+        VisibilityTimeout: 600 # AWS recommends 6 times lambdas timeout
         RedrivePolicy:
           deadLetterTargetArn:
             Fn::GetAtt: [TrimDLQ, Arn]
-          maxReceiveCount: 5 # AWS recommends minimum 5
+          maxReceiveCount: 1 # AWS recommends minimum 5, but we have to fix clients first not to delete failed tasks
 
     TranscodeWebQueue:
       Type: AWS::SQS::Queue
       Properties:
         # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-sqs-queues.html
         QueueName: upload-trancode-web-queue-${self:provider.stage}
-        VisibilityTimeout: 360 # AWS recommends 6 times lambdas timeou
+        VisibilityTimeout: 1200 # AWS recommends 6 times lambdas timeout
         RedrivePolicy:
           deadLetterTargetArn:
             Fn::GetAtt: [TranscodeWebDLQ, Arn]
-          maxReceiveCount: 5 # AWS recommends minimum 5
+          maxReceiveCount: 1 # AWS recommends minimum 5, but we have to fix clients first not to delete failed tasks
     
     TranscodeMobileQueue:
       Type: AWS::SQS::Queue
       Properties:
         # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-sqs-queues.html
         QueueName: upload-trancode-mobile-queue-${self:provider.stage}
-        VisibilityTimeout: 360 # AWS recommends 6 times lambdas timeou
+        VisibilityTimeout: 1200 # AWS recommends 6 times lambdas timeout
         RedrivePolicy:
           deadLetterTargetArn:
             Fn::GetAtt: [TranscodeMobileDLQ, Arn]
-          maxReceiveCount: 5 # AWS recommends minimum 5
+          maxReceiveCount: 1 # AWS recommends minimum 5, but we have to fix clients first not to delete failed tasks
     
     TranscribeQueue:
       Type: AWS::SQS::Queue
       Properties:
         # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-sqs-queues.html
         QueueName: upload-transcribe-queue-${self:provider.stage}
-        VisibilityTimeout: 600 # AWS recommends 6 times lambdas timeou
+        VisibilityTimeout: 1200 # AWS recommends 6 times lambdas timeou
         RedrivePolicy:
           deadLetterTargetArn:
             Fn::GetAtt: [TranscribeDLQ, Arn]
-          maxReceiveCount: 5 # AWS recommends minimum 5
+          maxReceiveCount: 1 # AWS recommends minimum 5, but we have to fix clients first not to delete failed tasks
 
     ProcessUploadSnsTopic:
       Type: AWS::SNS::Topic
