@@ -1,0 +1,9 @@
+# Ignore everything
+*
+
+# But not these files...
+!./*.py
+!infrastructure/*.tf
+!infrastructure/*.tvars
+!cicd/*
+!module/*.py
