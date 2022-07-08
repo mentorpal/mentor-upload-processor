@@ -1,5 +1,8 @@
 LICENSE_CONFIG?="license-config.json"
 
+node_modules/license-check-and-add:
+	npm ci
+
 LICENSE:
 	@echo "you must have a LICENSE file" 1>&2
 	exit 1
