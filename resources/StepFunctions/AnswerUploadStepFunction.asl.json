@@ -1,0 +1,38 @@
+{
+  "StartAt": "IsApplicableBranch",
+  "States": {
+    "IsApplicableBranch": {
+      "Type": "Choice",
+      "Comment": "Check if the branch is applicable to continue",
+      "Choices": [
+        {
+          "Variable": "$.ref",
+          "StringEquals": "refs/heads/master",
+          "Next": "FindMatchingRules"
+        }
+      ],
+      "Default": "Finish"
+    },
+    "FindMatchingRules": {
+      "Type": "Task",
+      "Comment": "Find matching rules based on the commits",
+      "Resource": "arn:aws:lambda:${aws:region}:${aws:accountId}:function:${self:service}-${self:provider.stage}-step_findMatchingRules",
+      "InputPath": "$.commits",
+      "ResultPath": "$.matchedRules",
+      "Next": "TriggerPipelines",
+      "Retry": [{ "ErrorEquals": ["States.TaskFailed"], "IntervalSeconds": 1, "MaxAttempts": 2, "BackoffRate": 2.0 }]
+    },
+    "TriggerPipelines": {
+      "Type": "Task",
+      "Comment": "Trigger pipelines for the rules that match",
+      "Resource": "arn:aws:lambda:${aws:region}:${aws:accountId}:function:${self:service}-${self:provider.stage}-step_triggerPipelines",
+      "InputPath": "$.matchedRules",
+      "Next": "Finish",
+      "Retry": [{ "ErrorEquals": ["States.TaskFailed"], "IntervalSeconds": 1, "MaxAttempts": 2, "BackoffRate": 2.0 }]
+    },
+    "Finish": {
+      "Type": "Pass",
+      "End": true
+    }
+  }
+}

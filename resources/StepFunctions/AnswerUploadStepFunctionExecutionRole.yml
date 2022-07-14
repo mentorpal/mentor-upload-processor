@@ -1,0 +1,31 @@
+Role:
+  Type: AWS::IAM::Role
+  Properties:
+    AssumeRolePolicyDocument:
+      Version: '2012-10-17'
+      Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+              - states.${self:provider.region}.amazonaws.com
+          Action:
+            - 'sts:AssumeRole'
+    Path: '/service-role/'
+    Description: Execution role for step function to process answer uploads
+    RoleName: ${self:service}-AnswerUploadExecRole-${self:provider.stage}
+    Policies:
+      - PolicyName: AnswerUploadStepFunctionExecRole
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action: 'sqs:SendMessage'
+              Resource:
+                - Fn::GetAtt:
+                    - AnswerUploadDLQ
+                    - Arn
+            - Effect: Allow
+              Action: 'lambda:InvokeFunction'
+              Resource:
+                - 'arn:aws:lambda:${aws:region}:${aws:accountId}:function:${self:service}-${self:provider.stage}-step_trim'
+
