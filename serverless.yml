@@ -167,17 +167,13 @@ provider:
             - dynamodb:UpdateItem
           Resource:
             Fn::GetAtt: [JobsTable, Arn]
-        - Effect: "Allow"
+        - Effect: Allow
           Action:
-            - sns:Publish
+            - states:StartExecution
+            - states:SendTaskSuccess
+            - states:SendTaskFailure
           Resource:
-            Ref: ProcessUploadSnsTopic
-        - Effect: "Allow"
-          Action:
-            - sqs:SendMessage
-          Resource:
-            Fn::GetAtt: [TrimQueue, Arn]
-
+            - Fn::GetAtt: [AnswerUploadStepFunction, Arn]
 package:
 #  individually: false
  patterns:
@@ -319,10 +315,9 @@ functions:
     memorySize: 1024
     timeout: 30 # 30sec is max for http requests
     environment:
-      UPLOAD_SNS_ARN:
-        Ref: ProcessUploadSnsTopic
-      TRIM_SQS_URL:
-        Ref: TrimQueue
+      ANSWER_UPLOAD_STEP_FUNCTION_ARN:
+        Fn::GetAtt: [AnswerUploadStepFunction, Arn]
+
     events:
       - http:
           path: /upload/answer
@@ -338,86 +333,109 @@ functions:
       # see https://www.serverless.com/framework/docs/providers/aws/guide/layers#using-your-layers
       - { Ref: BinariesLambdaLayer }
 
-  answer-trim:
-    handler: answer-trim.handler
-    memorySize: 4096 # needs cpu to run ffmpeg
-    timeout: 600 # some videos take 5min or so
-    environment:
-      UPLOAD_SNS_ARN:
-        Ref: ProcessUploadSnsTopic
-    events:
-      - sqs:
-          arn:
-            Fn::GetAtt: [TrimQueue, Arn]
-          batchSize: 1
-    layers:
-      # binaries gets named "Binaries"+"LambdaLayer":
-      # see https://www.serverless.com/framework/docs/providers/aws/guide/layers#using-your-layers
-      - { Ref: BinariesLambdaLayer }
+  step_trim:
+      handler: step-trim.handler
+      memorySize: 4096 # needs cpu to run ffmpeg
+      timeout: 600 # some videos take 5min or so
+      layers:
+        # binaries gets named "Binaries"+"LambdaLayer":
+        # see https://www.serverless.com/framework/docs/providers/aws/guide/layers#using-your-layers
+        - { Ref: BinariesLambdaLayer }
 
-  answer-transcode-web:
-    handler: answer-transcode-web.handler
-    memorySize: 8192 # 5min video takes 100sec with 2GB, 50sec with 4GB, 30sec with 8GB
-    timeout: 900 # give max time to make sure it gets transcoded
-    events:
-      - sqs:
-          arn:
-            Fn::GetAtt: [TranscodeWebQueue, Arn]
-          batchSize: 1
-    layers:
-      # binaries gets named "Binaries"+"LambdaLayer":
-      # see https://www.serverless.com/framework/docs/providers/aws/guide/layers#using-your-layers
-      - { Ref: BinariesLambdaLayer }
+  step_transcribe_start:
+      handler: step-transcribe-start.handler
+      memorySize: 512
+      timeout: 30
+      environment:
+        TRANSCRIBE_INPUT_BUCKET: ${self:provider.environment.TRANSCRIBE_INPUT_BUCKET}
+        TRANSCRIBE_OUTPUT_BUCKET: ${self:provider.environment.TRANSCRIBE_OUTPUT_BUCKET}
+      layers:
+        # binaries gets named "Binaries"+"LambdaLayer":
+        # see https://www.serverless.com/framework/docs/providers/aws/guide/layers#using-your-layers
+        - { Ref: BinariesLambdaLayer }
 
-  answer-transcode-mobile:
-    handler: answer-transcode-mobile.handler
-    memorySize: 8192 # 5min video takes 100sec with 2GB, 50sec with 4GB, 30sec with 8GB
-    timeout: 900
-    events:
-      - sqs:
-          arn:
-            Fn::GetAtt: [TranscodeMobileQueue, Arn]
-          batchSize: 1            
-    layers:
-      # binaries gets named "Binaries"+"LambdaLayer":
-      # see https://www.serverless.com/framework/docs/providers/aws/guide/layers#using-your-layers
-      - { Ref: BinariesLambdaLayer }
+  # answer-trim:
+  #   handler: answer-trim.handler
+  #   memorySize: 4096 # needs cpu to run ffmpeg
+  #   timeout: 600 # some videos take 5min or so
+  #   environment:
+  #     UPLOAD_SNS_ARN:
+  #       Ref: ProcessUploadSnsTopic
+  #   events:
+  #     - sqs:
+  #         arn:
+  #           Fn::GetAtt: [TrimQueue, Arn]
+  #         batchSize: 1
+  #   layers:
+  #     # binaries gets named "Binaries"+"LambdaLayer":
+  #     # see https://www.serverless.com/framework/docs/providers/aws/guide/layers#using-your-layers
+  #     - { Ref: BinariesLambdaLayer }
 
-  answer-transcribe-start:
-    handler: answer-transcribe-start.handler
-    memorySize: 1024 # need to extract audio
-    timeout: 30
-    environment:
-      TRANSCRIBE_INPUT_BUCKET: ${self:provider.environment.TRANSCRIBE_INPUT_BUCKET}
-      TRANSCRIBE_OUTPUT_BUCKET: ${self:provider.environment.TRANSCRIBE_OUTPUT_BUCKET}
-    events:
-      - sqs:
-          arn:
-            Fn::GetAtt: [TranscribeQueue, Arn]
-          batchSize: 1
-    layers:
-      # binaries gets named "Binaries"+"LambdaLayer":
-      # see https://www.serverless.com/framework/docs/providers/aws/guide/layers#using-your-layers
-      - { Ref: BinariesLambdaLayer }
+  # answer-transcode-web:
+  #   handler: answer-transcode-web.handler
+  #   memorySize: 8192 # 5min video takes 100sec with 2GB, 50sec with 4GB, 30sec with 8GB
+  #   timeout: 900 # give max time to make sure it gets transcoded
+  #   events:
+  #     - sqs:
+  #         arn:
+  #           Fn::GetAtt: [TranscodeWebQueue, Arn]
+  #         batchSize: 1
+  #   layers:
+  #     # binaries gets named "Binaries"+"LambdaLayer":
+  #     # see https://www.serverless.com/framework/docs/providers/aws/guide/layers#using-your-layers
+  #     - { Ref: BinariesLambdaLayer }
 
-  answer-transcribe-collect:
-    handler: answer-transcribe-collect.handler
-    memorySize: 512
-    timeout: 30
-    events:
-      # only one suffix is allowed and we have .json and .vtt
-      - s3:
-          bucket: ${self:provider.environment.TRANSCRIBE_OUTPUT_BUCKET}
-          event: s3:ObjectCreated:*
-          existing: true # otherwise sls will try to create it twice and fail
-          rules:
-            - suffix: '.json'
-      - s3:
-          bucket: ${self:provider.environment.TRANSCRIBE_OUTPUT_BUCKET}
-          event: s3:ObjectCreated:*
-          existing: true # otherwise sls will try to create it twice and fail
-          rules:
-            - suffix: '.vtt'
+  # answer-transcode-mobile:
+  #   handler: answer-transcode-mobile.handler
+  #   memorySize: 8192 # 5min video takes 100sec with 2GB, 50sec with 4GB, 30sec with 8GB
+  #   timeout: 900
+  #   events:
+  #     - sqs:
+  #         arn:
+  #           Fn::GetAtt: [TranscodeMobileQueue, Arn]
+  #         batchSize: 1            
+  #   layers:
+  #     # binaries gets named "Binaries"+"LambdaLayer":
+  #     # see https://www.serverless.com/framework/docs/providers/aws/guide/layers#using-your-layers
+  #     - { Ref: BinariesLambdaLayer }
+
+  # answer-transcribe-start:
+  #   handler: answer-transcribe-start.handler
+  #   memorySize: 1024 # need to extract audio
+  #   timeout: 30
+  #   environment:
+  #     TRANSCRIBE_INPUT_BUCKET: ${self:provider.environment.TRANSCRIBE_INPUT_BUCKET}
+  #     TRANSCRIBE_OUTPUT_BUCKET: ${self:provider.environment.TRANSCRIBE_OUTPUT_BUCKET}
+  #   events:
+  #     - sqs:
+  #         arn:
+  #           Fn::GetAtt: [TranscribeQueue, Arn]
+  #         batchSize: 1
+  #   layers:
+  #     # binaries gets named "Binaries"+"LambdaLayer":
+  #     # see https://www.serverless.com/framework/docs/providers/aws/guide/layers#using-your-layers
+  #     - { Ref: BinariesLambdaLayer }
+
+  # answer-transcribe-collect:
+  #   handler: answer-transcribe-collect.handler
+  #   memorySize: 512
+  #   timeout: 30
+  #   events:
+  #     # only one suffix is allowed and we have .json and .vtt
+  #     - s3:
+  #         bucket: ${self:provider.environment.TRANSCRIBE_OUTPUT_BUCKET}
+  #         event: s3:ObjectCreated:*
+  #         existing: true # otherwise sls will try to create it twice and fail
+  #         rules:
+  #           - suffix: '.json'
+  #     - s3:
+  #         bucket: ${self:provider.environment.TRANSCRIBE_OUTPUT_BUCKET}
+  #         event: s3:ObjectCreated:*
+  #         existing: true # otherwise sls will try to create it twice and fail
+  #         rules:
+  #           - suffix: '.vtt'
+
+
 
 resources:
   Conditions:
@@ -426,9 +444,8 @@ resources:
         - Fn::Equals: ['${self:provider.stage}', 'qa']
         - Fn::Equals: ['${self:provider.stage}', 'prod']
   Resources:
-    EvaluatePipelineTriggersStateMachine: ${file(./resources/StepFunctions/AnswerUploadStepFunction.yml):StateMachine}
-    EvaluatePipelineTriggersStateMachineExecutionRole: ${file(./resources/IAM/AnswerUploadStepFunctionExecutionRole.yml):Role}
-
+    AnswerUploadStepFunction: ${file(./resources/StepFunctions/AnswerUploadStepFunction.yml):StateMachine}
+    AnswerUploadStepFunctionExecutionRole: ${file(./resources/StepFunctions/AnswerUploadStepFunctionExecutionRole.yml):Role}
 
     AnswerUploadDLQ:
       Type: AWS::SQS::Queue
@@ -462,7 +479,7 @@ resources:
       Condition: CreateCloudWatchAlarm
       Properties:
         ActionsEnabled: true
-        AlarmName: 'Answer upload failed jobs ${self:resources.Resources.TranscodeWebDLQ.Properties.QueueName}'
+        AlarmName: 'Answer upload failed jobs ${self:resources.Resources.AnswerUploadDLQ.Properties.QueueName}'
         AlarmDescription: 'Number of failed answer upload jobs greater than zero'
         Namespace: 'AWS/SQS'
         Statistic: 'Sum'
@@ -537,12 +554,12 @@ resources:
               AllowedHeaders:
                 - '*'
 
-    # this fails on first deploy because CloudFormation tries to create
-    # association but the gateway does not yet exist
-    FirewallAssociation:
-      Type: AWS::WAFv2::WebACLAssociation
-      DependsOn: "ApiGatewayRestApi"
-      Properties:
-        ResourceArn:
-          Fn::Sub: 'arn:aws:apigateway:${AWS::Region}::/restapis/${ApiGatewayRestApi}/stages/${self:provider.stage}'
-        WebACLArn: '${self:custom.stages.${self:provider.stage}.WEBACL_ARN}'
+    # # this fails on first deploy because CloudFormation tries to create
+    # # association but the gateway does not yet exist
+    # FirewallAssociation:
+    #   Type: AWS::WAFv2::WebACLAssociation
+    #   DependsOn: "ApiGatewayRestApi"
+    #   Properties:
+    #     ResourceArn:
+    #       Fn::Sub: 'arn:aws:apigateway:${AWS::Region}::/restapis/${ApiGatewayRestApi}/stages/${self:provider.stage}'
+    #     WebACLArn: '${self:custom.stages.${self:provider.stage}.WEBACL_ARN}'

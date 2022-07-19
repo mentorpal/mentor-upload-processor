@@ -1,34 +1,197 @@
 {
-  "StartAt": "IsApplicableBranch",
+  "StartAt": "IsTrimRequired",
   "States": {
-    "IsApplicableBranch": {
+    "IsTrimRequired": {
       "Type": "Choice",
-      "Comment": "Check if the branch is applicable to continue",
+      "Comment": "Check if trimming is requested",
       "Choices": [
         {
-          "Variable": "$.ref",
-          "StringEquals": "refs/heads/master",
-          "Next": "FindMatchingRules"
+          "Variable": "$.request.trim",
+          "IsPresent": true,
+          "Next": "TrimUpload"
         }
       ],
-      "Default": "Finish"
+      "Default": "TriggerProcessing"
     },
-    "FindMatchingRules": {
+    "TrimUpload": {
       "Type": "Task",
-      "Comment": "Find matching rules based on the commits",
-      "Resource": "arn:aws:lambda:${aws:region}:${aws:accountId}:function:${self:service}-${self:provider.stage}-step_findMatchingRules",
-      "InputPath": "$.commits",
-      "ResultPath": "$.matchedRules",
-      "Next": "TriggerPipelines",
-      "Retry": [{ "ErrorEquals": ["States.TaskFailed"], "IntervalSeconds": 1, "MaxAttempts": 2, "BackoffRate": 2.0 }]
+      "Comment": "Trim video and re-upload to S3",
+      "Resource": "arn:aws:lambda:${aws:region}:${aws:accountId}:function:${self:service}-${self:provider.stage}-step_trim",
+      "Parameters": {
+        "request.$": "$.request"
+      },
+      "ResultPath": null,
+      "Next": "TriggerProcessing",
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "States.TaskFailed"
+          ],
+          "IntervalSeconds": 1,
+          "MaxAttempts": 2,
+          "BackoffRate": 2.0
+        }
+      ],
+      "Catch": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "Next": "ErrorHandler"
+        }
+      ]
     },
-    "TriggerPipelines": {
-      "Type": "Task",
-      "Comment": "Trigger pipelines for the rules that match",
-      "Resource": "arn:aws:lambda:${aws:region}:${aws:accountId}:function:${self:service}-${self:provider.stage}-step_triggerPipelines",
-      "InputPath": "$.matchedRules",
+    "TriggerProcessing": {
+      "Type": "Parallel",
       "Next": "Finish",
-      "Retry": [{ "ErrorEquals": ["States.TaskFailed"], "IntervalSeconds": 1, "MaxAttempts": 2, "BackoffRate": 2.0 }]
+      "Catch": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "Next": "ErrorHandler"
+        }
+      ],
+      "Parameters": {
+        "request.$": "$.request"
+      },
+      "ResultPath": null,
+      "Branches": [
+        {
+          "StartAt": "Transcode Web",
+          "States": {
+            "Transcode Web": {
+              "Type": "Task",
+              "End": true,
+              "Comment": "Transcode video to web format",
+              "Resource": "arn:aws:lambda:${aws:region}:${aws:accountId}:function:${self:service}-${self:provider.stage}-step_trim",
+              "Parameters": {
+                "request.$": "$.request"
+              },
+              "Retry": [
+                {
+                  "ErrorEquals": [
+                    "States.TaskFailed"
+                  ],
+                  "IntervalSeconds": 10,
+                  "MaxAttempts": 2,
+                  "BackoffRate": 2.0
+                }
+              ]
+            }
+          }
+        },
+        {
+          "StartAt": "Transcode Mobile",
+          "States": {
+            "Transcode Mobile": {
+              "Type": "Task",
+              "End": true,
+              "Comment": "Transcode video to mobile format",
+              "Resource": "arn:aws:lambda:${aws:region}:${aws:accountId}:function:${self:service}-${self:provider.stage}-step_trim",
+              "Parameters": {
+                "request.$": "$.request"
+              },
+              "Retry": [
+                {
+                  "ErrorEquals": [
+                    "States.TaskFailed"
+                  ],
+                  "IntervalSeconds": 10,
+                  "MaxAttempts": 2,
+                  "BackoffRate": 2.0
+                }
+              ]
+            }
+          }
+        },
+        {
+          "StartAt": "Transcribe",
+          "States": {
+            "Transcribe": {
+              "Type": "Task",
+              "End": true,
+              "Comment": "Transcribe video",
+              "Resource": "arn:aws:states:::lambda:invoke.waitForTaskToken",
+              "Parameters": {
+                "FunctionName": "arn:aws:lambda:${aws:region}:${aws:accountId}:function:${self:service}-${self:provider.stage}-step_transcribe_start",
+                "Payload": {
+                  "request.$": "$.request",
+                  "task_token.$": "$$.Task.Token"
+                }
+              },
+              "Retry": [
+                {
+                  "ErrorEquals": [
+                    "States.TaskFailed"
+                  ],
+                  "IntervalSeconds": 30,
+                  "MaxAttempts": 2,
+                  "BackoffRate": 2.0
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "ErrorHandler": {
+      "Type": "Parallel",
+      "Next": "Finish",
+      "Parameters": {
+        "request.$": "$.request",
+        "error.$": "$.Error",
+        "cause.$": "$.Cause"
+      },
+      "Branches": [
+        {
+          "StartAt": "Mark as failed",
+          "States": {
+            "Mark as failed": {
+              "Type": "Task",
+              "End": true,
+              "Comment": "Mark video upload in graphql as failed",
+              "Resource": "arn:aws:lambda:${aws:region}:${aws:accountId}:function:${self:service}-${self:provider.stage}-step_trim",
+              "Parameters": {
+                "request.$": "$.request",
+                "error.$": "$.Error",
+                "cause.$": "$.Cause"
+              },
+              "Retry": [
+                {
+                  "ErrorEquals": [
+                    "States.TaskFailed"
+                  ],
+                  "IntervalSeconds": 5,
+                  "MaxAttempts": 3,
+                  "BackoffRate": 2.0
+                }
+              ]
+            }
+          }
+        },
+        {
+          "StartAt": "Send to DLQ",
+          "States": {
+            "Send to DLQ": {
+              "Type": "Task",
+              "End": true,
+              "Comment": "Send a message to the DLQ for alerting",
+              "Resource": "arn:aws:lambda:${aws:region}:${aws:accountId}:function:${self:service}-${self:provider.stage}-step_trim",
+              "Retry": [
+                {
+                  "ErrorEquals": [
+                    "States.TaskFailed"
+                  ],
+                  "IntervalSeconds": 3,
+                  "MaxAttempts": 6,
+                  "BackoffRate": 2.0
+                }
+              ]
+            }
+          }
+        }
+      ]
     },
     "Finish": {
       "Type": "Pass",
