@@ -8,100 +8,95 @@ import json
 import boto3
 import tempfile
 import os
-
-from module.utils import (
-    s3_bucket,
-    load_sentry,
-    require_env,
-    video_trim,
-)
-from util import fetch_from_graphql
-
+import logger
+from media_tools import video_encode_for_mobile
 from api import (
     UpdateTaskStatusRequest,
+    AnswerUpdateRequest,
     upload_task_status_update,
+    upload_answer_and_task_status_update,
 )
-from module.logger import get_logger
-
+from util import s3_bucket, load_sentry, fetch_from_graphql
 
 load_sentry()
-log = get_logger("upload-answer-trim")
-aws_region = require_env("REGION")
-s3_client = boto3.client("s3", region_name=aws_region)
-sns = boto3.client("sns", region_name=aws_region)
-upload_bucket = require_env("SIGNED_UPLOAD_BUCKET")
+log = logger.get_logger("answer-transcode-mobile-handler")
+s3 = boto3.client("s3")
 
 
-def get_original_video_url(mentor: str, question: str) -> str:
-    base_url = os.environ.get("STATIC_URL_BASE", "")
-    return f"{base_url}/videos/{mentor}/{question}/original.mp4"
+def transcode_mobile(video_file, s3_path):
+    work_dir = os.path.dirname(video_file)
+    mobile_mp4 = os.path.join(work_dir, "mobile.mp4")
+
+    video_encode_for_mobile(video_file, mobile_mp4)
+
+    log.info("uploading %s to %s/%s", mobile_mp4, s3_bucket, s3_path)
+    s3.upload_file(
+        mobile_mp4,
+        s3_bucket,
+        f"{s3_path}/mobile.mp4",
+        ExtraArgs={"ContentType": "video/mp4"},
+    )
 
 
 def process_task(request):
+    log.info("video to process %s", request["video"])
     stored_task = fetch_from_graphql(
-        request["mentor"], request["question"], "trimUploadTask"
+        request["mentor"], request["question"], "transcodeMobileTask"
     )
     if not stored_task:
         log.warn("task not found, skipping transcode")
         return
 
     if stored_task["status"].startswith("CANCEL"):
-        log.info("task cancelled, skipping trim")
+        log.info("task cancelled, skipping transcription")
         return
 
     with tempfile.TemporaryDirectory() as work_dir:
         work_file = os.path.join(work_dir, "original.mp4")
-        s3_client.download_file(s3_bucket, request["video"], work_file)
-        s3_path = os.path.dirname(request["video"])
+        s3.download_file(s3_bucket, request["video"], work_file)
+        s3_path = os.path.dirname(request["video"])  # same 'folder' as original file
         log.info("%s downloaded to %s", request["video"], work_dir)
-        upload_task_status_update(
-            UpdateTaskStatusRequest(
-                mentor=request["mentor"],
-                question=request["question"],
-                trim_upload_task={"status": "IN_PROGRESS"},
-            )
-        )
-
-        log.info("trimming file %s", work_file)
-        trim_file = f"{work_file}-trim.mp4"
-        video_trim(
-            work_file,
-            trim_file,
-            request["trimUploadTask"]["start"],
-            request["trimUploadTask"]["end"],
-        )
-        log.info("trim completed")
-        s3_path = f"videos/{request['mentor']}/{request['question']}"
-        s3_client.upload_file(
-            trim_file,
-            s3_bucket,
-            f"{s3_path}/original.mp4",
-            ExtraArgs={"ContentType": "video/mp4"},
-        )
-        log.info("trimmed video uploaded")
 
         upload_task_status_update(
             UpdateTaskStatusRequest(
                 mentor=request["mentor"],
                 question=request["question"],
-                trim_upload_task={"status": "DONE"},
+                transcode_mobile_task={"status": "IN_PROGRESS"},
             )
         )
+
+        transcode_mobile(work_file, s3_path)
+
+        mobile_media = {
+            "type": "video",
+            "tag": "mobile",
+            "url": f"{s3_path}/mobile.mp4",
+        }
+
+        upload_answer_and_task_status_update(
+            AnswerUpdateRequest(
+                mentor=request["mentor"],
+                question=request["question"],
+                mobile_media=mobile_media,
+            ),
+            UpdateTaskStatusRequest(
+                mentor=request["mentor"],
+                question=request["question"],
+                transcode_mobile_task={"status": "DONE"},
+                mobile_media=mobile_media,
+            ),
+        )
+
 
 def handler(event, context):
     log.info(json.dumps(event))
     request = event["request"]
-    
-    task = request["trimUploadTask"] if "trimUploadTask" in request else None
+
+    task = (
+        request["transcodeMobileTask"] if "transcodeMobileTask" in request else None
+    )
     if not task:
-        log.warning("no trim task requested")
+        log.warning("no transcoding-mobile task requested")
         return
 
     process_task(request)
-
-
-# # for local debugging:
-# if __name__ == "__main__":
-#     with open("__events__/step-function-event.json.dist") as f:
-#         event = json.loads(f.read())
-#         handler(event, {})

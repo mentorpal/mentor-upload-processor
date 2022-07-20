@@ -29,3 +29,12 @@ Role:
               Resource:
                 - 'arn:aws:lambda:${aws:region}:${aws:accountId}:function:${self:service}-${self:provider.stage}-step_trim'
                 - 'arn:aws:lambda:${aws:region}:${aws:accountId}:function:${self:service}-${self:provider.stage}-step_transcribe_start'
+                - 'arn:aws:lambda:${aws:region}:${aws:accountId}:function:${self:service}-${self:provider.stage}-step_transcode_web'
+                - 'arn:aws:lambda:${aws:region}:${aws:accountId}:function:${self:service}-${self:provider.stage}-step_transcode_mobile'
+                - 'arn:aws:lambda:${aws:region}:${aws:accountId}:function:${self:service}-${self:provider.stage}-step_mark_failed'
+            - Effect: Allow
+              Action: 'sqs:SendMessage'
+              Resource:
+                - Fn::GetAtt:
+                    - AnswerUploadDLQ
+                    - Arn

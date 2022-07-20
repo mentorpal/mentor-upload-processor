@@ -342,9 +342,23 @@ functions:
         # see https://www.serverless.com/framework/docs/providers/aws/guide/layers#using-your-layers
         - { Ref: BinariesLambdaLayer }
 
+  step_transcode_web:
+      handler: step-transcode-web.handler
+      memorySize: 8192 # 5min video takes 100sec with 2GB, 50sec with 4GB, 30sec with 8GB
+      timeout: 900 # give max time to make sure it gets transcoded
+      layers:
+        - { Ref: BinariesLambdaLayer }
+
+  step_transcode_mobile:
+      handler: step-transcode-mobile.handler
+      memorySize: 8192 # 5min video takes 100sec with 2GB, 50sec with 4GB, 30sec with 8GB
+      timeout: 900 # give max time to make sure it gets transcoded
+      layers:
+        - { Ref: BinariesLambdaLayer }
+
   step_transcribe_start:
       handler: step-transcribe-start.handler
-      memorySize: 512
+      memorySize: 1024 # need to extract audio
       timeout: 30
       environment:
         TRANSCRIBE_INPUT_BUCKET: ${self:provider.environment.TRANSCRIBE_INPUT_BUCKET}
@@ -354,67 +368,9 @@ functions:
         # see https://www.serverless.com/framework/docs/providers/aws/guide/layers#using-your-layers
         - { Ref: BinariesLambdaLayer }
 
-  # answer-trim:
-  #   handler: answer-trim.handler
-  #   memorySize: 4096 # needs cpu to run ffmpeg
-  #   timeout: 600 # some videos take 5min or so
-  #   environment:
-  #     UPLOAD_SNS_ARN:
-  #       Ref: ProcessUploadSnsTopic
-  #   events:
-  #     - sqs:
-  #         arn:
-  #           Fn::GetAtt: [TrimQueue, Arn]
-  #         batchSize: 1
-  #   layers:
-  #     # binaries gets named "Binaries"+"LambdaLayer":
-  #     # see https://www.serverless.com/framework/docs/providers/aws/guide/layers#using-your-layers
-  #     - { Ref: BinariesLambdaLayer }
-
-  # answer-transcode-web:
-  #   handler: answer-transcode-web.handler
-  #   memorySize: 8192 # 5min video takes 100sec with 2GB, 50sec with 4GB, 30sec with 8GB
-  #   timeout: 900 # give max time to make sure it gets transcoded
-  #   events:
-  #     - sqs:
-  #         arn:
-  #           Fn::GetAtt: [TranscodeWebQueue, Arn]
-  #         batchSize: 1
-  #   layers:
-  #     # binaries gets named "Binaries"+"LambdaLayer":
-  #     # see https://www.serverless.com/framework/docs/providers/aws/guide/layers#using-your-layers
-  #     - { Ref: BinariesLambdaLayer }
-
-  # answer-transcode-mobile:
-  #   handler: answer-transcode-mobile.handler
-  #   memorySize: 8192 # 5min video takes 100sec with 2GB, 50sec with 4GB, 30sec with 8GB
-  #   timeout: 900
-  #   events:
-  #     - sqs:
-  #         arn:
-  #           Fn::GetAtt: [TranscodeMobileQueue, Arn]
-  #         batchSize: 1            
-  #   layers:
-  #     # binaries gets named "Binaries"+"LambdaLayer":
-  #     # see https://www.serverless.com/framework/docs/providers/aws/guide/layers#using-your-layers
-  #     - { Ref: BinariesLambdaLayer }
-
-  # answer-transcribe-start:
-  #   handler: answer-transcribe-start.handler
-  #   memorySize: 1024 # need to extract audio
-  #   timeout: 30
-  #   environment:
-  #     TRANSCRIBE_INPUT_BUCKET: ${self:provider.environment.TRANSCRIBE_INPUT_BUCKET}
-  #     TRANSCRIBE_OUTPUT_BUCKET: ${self:provider.environment.TRANSCRIBE_OUTPUT_BUCKET}
-  #   events:
-  #     - sqs:
-  #         arn:
-  #           Fn::GetAtt: [TranscribeQueue, Arn]
-  #         batchSize: 1
-  #   layers:
-  #     # binaries gets named "Binaries"+"LambdaLayer":
-  #     # see https://www.serverless.com/framework/docs/providers/aws/guide/layers#using-your-layers
-  #     - { Ref: BinariesLambdaLayer }
+  step_mark_failed:
+      handler: step-mark-failed.handler
+      timeout: 30
 
   # answer-transcribe-collect:
   #   handler: answer-transcribe-collect.handler
