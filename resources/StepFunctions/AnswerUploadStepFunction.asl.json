@@ -21,6 +21,7 @@
         "request.$": "$.request"
       },
       "ResultPath": null,
+      
       "Next": "TriggerProcessing",
       "Retry": [
         {
@@ -37,6 +38,7 @@
           "ErrorEquals": [
             "States.ALL"
           ],
+          "ResultPath": "$.exception",
           "Next": "ErrorHandler"
         }
       ]

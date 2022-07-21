@@ -92,9 +92,7 @@ def handler(event, context):
     log.info(json.dumps(event))
     request = event["request"]
 
-    task = (
-        request["transcodeMobileTask"] if "transcodeMobileTask" in request else None
-    )
+    task = request["transcodeMobileTask"] if "transcodeMobileTask" in request else None
     if not task:
         log.warning("no transcoding-mobile task requested")
         return

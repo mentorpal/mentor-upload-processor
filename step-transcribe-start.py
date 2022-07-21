@@ -34,9 +34,10 @@ def is_idle_question(question_id: str) -> bool:
     return name == "_IDLE_"
 
 
-def transcribe_video(mentor, question, task_id, video_file):
+def transcribe_video(mentor, question, task_id, video_file, task_token):
     if not has_audio(video_file):  # this does not work on mac :/
         log.warn("video file does not contain any audio streams")
+        sfn_client.send_task_success(taskToken=task_token, output="{}")
         # continue to overwrite any existing previous transcript
     else:
         audio_file = video_to_audio(video_file)  # fails if no audio stream exists
@@ -68,15 +69,17 @@ def transcribe_video(mentor, question, task_id, video_file):
         log.info(job)
 
 
-def process_task(request, task):
+def process_task(request, task, task_token):
     stored_task = fetch_from_graphql(
         request["mentor"], request["question"], "transcribeTask"
     )
     if not stored_task:
         log.warn("task not found, skipping transcription")
+        sfn_client.send_task_success(taskToken=task_token, output="{}")
         return
     if stored_task["status"].startswith("CANCEL"):
         log.info("task cancelled, skipping transcription")
+        sfn_client.send_task_success(taskToken=task_token, output="{}")
         return
 
     is_idle = is_idle_question(request["question"])
@@ -89,13 +92,17 @@ def process_task(request, task):
                 transcribe_task={"status": "DONE"},
             )
         )
+        sfn_client.send_task_success(taskToken=task_token, output="{}")
         return
 
     upload_task_status_update(
         UpdateTaskStatusRequest(
             mentor=request["mentor"],
             question=request["question"],
-            transcribe_task={"status": "IN_PROGRESS"},
+            transcribe_task={
+                "status": "IN_PROGRESS",
+                "payload": task_token,
+            },
         )
     )
 
@@ -110,37 +117,19 @@ def process_task(request, task):
             request["question"],
             task["task_id"],
             work_file,
+            task_token,
         )
 
 
 def handler(event, context):
     log.info(json.dumps(event))
-    sfn_client.send_task_success(taskToken=event["task_token"], output="{}")
 
-    # for record in event["Records"]:
-    #     body = json.loads(str(record["body"]))
-    #     request = json.loads(str(body["Message"]))["request"]
-    #     task = request["transcribeTask"] if "transcribeTask" in request else None
-    #     if not task:
-    #         log.warning("transcribe task not requested")
-    #         return
+    request = event["request"]
 
-    #     try:
-    #         process_task(request, task)
-    #     except Exception as x:
-    #         log.error(x)
-    #         upload_task_status_update(
-    #             UpdateTaskStatusRequest(
-    #                 mentor=request["mentor"],
-    #                 question=request["question"],
-    #                 transcribe_task={"status": "FAILED"},
-    #             )
-    #         )
-    #         raise x
+    task = request["transcribeTask"] if "transcribeTask" in request else None
+    if not task:
+        log.warning("transcribe task not requested")
+        sfn_client.send_task_success(taskToken=event["task_token"], output="{}")
+        return
 
-
-# # for local debugging:
-# if __name__ == '__main__':
-#     with open('__events__/answer-event.json.dist') as f:
-#         event = json.loads(f.read())
-#         handler(event, {})
+    process_task(request, task, event["task_token"])

@@ -36,6 +36,7 @@ class Media:
 class TaskInfo:
     task_id: str
     status: str
+    payload: str
 
 
 @dataclass
@@ -105,6 +106,7 @@ def fetch_task_gql(mentor_id: str, question_id) -> GQLQueryBody:
                 transcribeTask{
                     task_id
                     status
+                    payload
                 }
                 trimUploadTask{
                     task_id

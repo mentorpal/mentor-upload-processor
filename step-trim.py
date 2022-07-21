@@ -67,8 +67,8 @@ def process_task(request):
         video_trim(
             work_file,
             trim_file,
-            request["trimUploadTask"]["start"],
-            request["trimUploadTask"]["end"],
+            request["trim"]["start"],
+            request["trim"]["end"],
         )
         log.info("trim completed")
         s3_path = f"videos/{request['mentor']}/{request['question']}"
@@ -88,10 +88,11 @@ def process_task(request):
             )
         )
 
+
 def handler(event, context):
     log.info(json.dumps(event))
     request = event["request"]
-    
+
     task = request["trimUploadTask"] if "trimUploadTask" in request else None
     if not task:
         log.warning("no trim task requested")

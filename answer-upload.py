@@ -197,7 +197,7 @@ def handler(event, context):
             "mentor": mentor,
             "question": question,
             "video": f"{s3_path}/original.mp4",
-            **({'trim': trim} if trim is not None else {}),
+            **({"trim": trim} if trim is not None else {}),
             "transcodeWebTask": transcode_web_task,
             "transcodeMobileTask": transcode_mobile_task,
             "trimUploadTask": trim_upload_task,
@@ -228,7 +228,9 @@ def handler(event, context):
     sfn_job_id = sfn_client.start_execution(
         stateMachineArn=step_fn_arn,
         # name must be unique for AWS account, region, and state machine for 90 days
-        name=f"{mentor}-{question}-{transcode_web_task['task_id']}"[:80], # max length is 80
+        name=f"{mentor}-{question}-{transcode_web_task['task_id']}"[
+            :80
+        ],  # max length is 80
         input=json.dumps(req),
         # traceHeader='string' # TODO xray
     )
