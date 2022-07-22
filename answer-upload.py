@@ -36,10 +36,9 @@ aws_region = require_env("REGION")
 s3_client = boto3.client("s3", region_name=aws_region)
 sns = boto3.client("sns", region_name=aws_region)
 upload_bucket = require_env("SIGNED_UPLOAD_BUCKET")
-upload_arn = require_env("UPLOAD_SNS_ARN")
-log.info(f"upload sns arn: {upload_arn}")
 sqs_client = boto3.client("sqs", region_name=aws_region)
-trim_queue_url = require_env("TRIM_SQS_URL")
+sfn_client = boto3.client("stepfunctions", region_name=aws_region)
+step_fn_arn = require_env("ANSWER_UPLOAD_STEP_FUNCTION_ARN")
 
 
 def create_task_list(trim, has_edited_transcript):
@@ -198,6 +197,7 @@ def handler(event, context):
             "mentor": mentor,
             "question": question,
             "video": f"{s3_path}/original.mp4",
+            **({"trim": trim} if trim is not None else {}),
             "transcodeWebTask": transcode_web_task,
             "transcodeMobileTask": transcode_mobile_task,
             "trimUploadTask": trim_upload_task,
@@ -225,21 +225,16 @@ def handler(event, context):
             },
         ),
     )
-    if trim:
-        log.info("sending trim job request %s", req)
-        # graphql does not support start and end so putting here for now:
-        trim_upload_task["start"] = trim["start"]
-        trim_upload_task["end"] = trim["end"]
 
-        sqs_msg = sqs_client.send_message(
-            QueueUrl=trim_queue_url, MessageBody=json.dumps(req)
-        )
-        log.info("sqs message published %s", json.dumps(sqs_msg))
-    else:
-        log.info("sending transc* job request %s", req)
-        # todo test failure if we need to check sns_msg.ResponseMetadata.HTTPStatusCode != 200
-        sns_msg = sns.publish(TopicArn=upload_arn, Message=json.dumps(req))
-        log.info("sns message published %s", json.dumps(sns_msg))
+    # name must be unique for AWS account, region, and state machine for 90 days
+    job_name = f"{mentor}-{question}-{transcode_web_task['task_id']}"
+    sfn_job_id = sfn_client.start_execution(
+        stateMachineArn=step_fn_arn,
+        name=job_name[:80],  # max length is 80
+        input=json.dumps(req),
+        # traceHeader='string' # TODO xray
+    )
+    log.info("step function executed %s", sfn_job_id)
 
     data = {
         "taskList": task_list,

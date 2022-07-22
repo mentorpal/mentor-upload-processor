@@ -14,10 +14,10 @@ from module.utils import (
     load_sentry,
     require_env,
     video_trim,
+    fetch_from_graphql,
 )
-from util import fetch_from_graphql
 
-from api import (
+from module.api import (
     UpdateTaskStatusRequest,
     upload_task_status_update,
 )
@@ -30,8 +30,6 @@ aws_region = require_env("REGION")
 s3_client = boto3.client("s3", region_name=aws_region)
 sns = boto3.client("sns", region_name=aws_region)
 upload_bucket = require_env("SIGNED_UPLOAD_BUCKET")
-upload_arn = require_env("UPLOAD_SNS_ARN")
-log.info(f"upload sns arn: {upload_arn}")
 
 
 def get_original_video_url(mentor: str, question: str) -> str:
@@ -69,8 +67,8 @@ def process_task(request):
         video_trim(
             work_file,
             trim_file,
-            request["trimUploadTask"]["start"],
-            request["trimUploadTask"]["end"],
+            request["trim"]["start"],
+            request["trim"]["end"],
         )
         log.info("trim completed")
         s3_path = f"videos/{request['mentor']}/{request['question']}"
@@ -81,13 +79,6 @@ def process_task(request):
             ExtraArgs={"ContentType": "video/mp4"},
         )
         log.info("trimmed video uploaded")
-
-        log.info("sending transc* job request %s", request)
-        # todo test failure if we need to check sns_msg.ResponseMetadata.HTTPStatusCode != 200
-        sns_msg = sns.publish(
-            TopicArn=upload_arn, Message=json.dumps({"request": request})
-        )
-        log.info("sns message published %s", json.dumps(sns_msg))
 
         upload_task_status_update(
             UpdateTaskStatusRequest(
@@ -100,30 +91,18 @@ def process_task(request):
 
 def handler(event, context):
     log.info(json.dumps(event))
-    for record in event["Records"]:
-        body = json.loads(str(record["body"]))
-        request = body["request"]
-        task = request["trimUploadTask"] if "trimUploadTask" in request else None
-        if not task:
-            log.warning("no trim task requested")
-            return
+    request = event["request"]
 
-        try:
-            process_task(request)
-        except Exception as x:
-            log.error(x)
-            upload_task_status_update(
-                UpdateTaskStatusRequest(
-                    mentor=request["mentor"],
-                    question=request["question"],
-                    trim_upload_task={"status": "FAILED"},
-                )
-            )
-            raise x
+    task = request["trimUploadTask"] if "trimUploadTask" in request else None
+    if not task:
+        log.warning("no trim task requested")
+        return
+
+    process_task(request)
 
 
 # # for local debugging:
-if __name__ == "__main__":
-    with open("__events__/answer-trim-upload-event.json.dist") as f:
-        event = json.loads(f.read())
-        handler(event, {})
+# if __name__ == "__main__":
+#     with open("__events__/step-function-event.json.dist") as f:
+#         event = json.loads(f.read())
+#         handler(event, {})

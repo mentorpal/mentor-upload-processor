@@ -8,9 +8,10 @@
 import json
 import ffmpy
 import os
-from module.logger import get_logger
 from os import _Environ, environ
 from typing import Any, Dict, Union, Tuple
+from module.logger import get_logger
+from module.api import fetch_task
 
 
 log = get_logger()
@@ -129,3 +130,15 @@ def video_trim(
     )
     ff.run()
     log.debug(ff)
+
+
+def fetch_from_graphql(mentor, question, task_name):
+    upload_task = fetch_task(mentor, question)
+    if not upload_task:
+        # this can happen if any task status is failed and client deletes the task
+        return None
+    stored_task = upload_task[task_name] if task_name in upload_task else None
+    if stored_task is None:
+        log.error("task does not exist in upload task %s", upload_task)
+        raise Exception("task does not exist in upload task %s", upload_task)
+    return stored_task

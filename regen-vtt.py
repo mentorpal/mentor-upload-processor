@@ -2,7 +2,7 @@ import json
 import base64
 import tempfile
 import os
-from api import fetch_answer_transcript_and_media
+from module.api import fetch_answer_transcript_and_media
 from media_tools import transcript_to_vtt
 import boto3
 from module.logger import get_logger

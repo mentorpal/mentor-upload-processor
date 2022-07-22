@@ -1,0 +1,28 @@
+{
+  "request": {
+    "mentor": "621c91dd301244fca42b0891",
+    "question": "60c7b69407dd70415d3c5965",
+    "video": "videos/621c91dd301244fca42b0891/60c7b69407dd70415d3c5965/original.mp4",
+    "trim": { "start": 0, "end": 5.9211 },
+    "transcodeWebTask": {
+      "task_name": "transcoding-web",
+      "task_id": "af11894f-c6ec-4821-9b56-16bd6d2ee9b6",
+      "status": "QUEUED"
+    },
+    "transcodeMobileTask": {
+      "task_name": "transcoding-mobile",
+      "task_id": "40a6a023-5039-462f-86d3-2c423e4284fc",
+      "status": "QUEUED"
+    },
+    "trimUploadTask": {
+      "task_name": "trim-upload",
+      "task_id": "2bbd69d4-9a3b-4fa2-8262-30779a1c734d",
+      "status": "QUEUED"
+    },
+    "transcribeTask": {
+      "task_name": "transcribing",
+      "task_id": "edac05a7-db80-4638-b982-8bec757a4d7b",
+      "status": "QUEUED"
+    }
+  }
+}
