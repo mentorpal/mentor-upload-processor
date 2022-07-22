@@ -10,7 +10,7 @@ import botocore
 import tempfile
 import os
 import logger
-from api import (
+from module.api import (
     AnswerUpdateRequest,
     UpdateTaskStatusRequest,
     upload_answer_and_task_status_update,

@@ -17,7 +17,7 @@ from module.utils import (
     fetch_from_graphql,
 )
 
-from api import (
+from module.api import (
     UpdateTaskStatusRequest,
     upload_task_status_update,
 )
