@@ -16,7 +16,11 @@ from api import (
     upload_task_status_update,
     upload_answer_and_task_status_update,
 )
-from util import s3_bucket, load_sentry, fetch_from_graphql
+from module.utils import (
+    s3_bucket,
+    load_sentry,
+    fetch_from_graphql,
+)
 
 load_sentry()
 log = logger.get_logger("answer-transcode-mobile-handler")

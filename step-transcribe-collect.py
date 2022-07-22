@@ -15,7 +15,12 @@ from api import (
     UpdateTaskStatusRequest,
     upload_answer_and_task_status_update,
 )
-from util import s3_bucket, load_sentry, fetch_from_graphql, require_env
+from module.utils import (
+    s3_bucket,
+    load_sentry,
+    require_env,
+    fetch_from_graphql,
+)
 
 
 load_sentry()

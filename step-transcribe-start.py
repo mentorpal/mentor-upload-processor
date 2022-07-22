@@ -11,12 +11,17 @@ import os
 import logger
 import uuid
 from media_tools import video_to_audio, has_audio
+from module.utils import (
+    s3_bucket,
+    load_sentry,
+    require_env,
+    fetch_from_graphql,
+)
 from api import (
     UpdateTaskStatusRequest,
     fetch_question_name,
     upload_task_status_update,
 )
-from util import s3_bucket, require_env, load_sentry, fetch_from_graphql
 
 load_sentry()
 log = logger.get_logger("answer-transcribe-start-handler")

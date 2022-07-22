@@ -10,7 +10,7 @@ from api import (
     UpdateTaskStatusRequest,
     upload_task_status_update,
 )
-from util import load_sentry
+from module.utils import load_sentry
 
 load_sentry()
 log = logger.get_logger("answer-transcribe-start-handler")

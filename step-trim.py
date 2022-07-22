@@ -14,8 +14,8 @@ from module.utils import (
     load_sentry,
     require_env,
     video_trim,
+    fetch_from_graphql,
 )
-from util import fetch_from_graphql
 
 from api import (
     UpdateTaskStatusRequest,
