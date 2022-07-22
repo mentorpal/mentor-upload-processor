@@ -225,12 +225,12 @@ def handler(event, context):
             },
         ),
     )
+
+    # name must be unique for AWS account, region, and state machine for 90 days
+    job_name = f"{mentor}-{question}-{transcode_web_task['task_id']}"
     sfn_job_id = sfn_client.start_execution(
         stateMachineArn=step_fn_arn,
-        # name must be unique for AWS account, region, and state machine for 90 days
-        name=f"{mentor}-{question}-{transcode_web_task['task_id']}"[
-            :80
-        ],  # max length is 80
+        name=job_name[:80],  # max length is 80
         input=json.dumps(req),
         # traceHeader='string' # TODO xray
     )
