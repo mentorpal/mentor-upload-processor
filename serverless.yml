@@ -508,12 +508,12 @@ resources:
               AllowedHeaders:
                 - '*'
 
-    # # this fails on first deploy because CloudFormation tries to create
-    # # association but the gateway does not yet exist
-    # FirewallAssociation:
-    #   Type: AWS::WAFv2::WebACLAssociation
-    #   DependsOn: "ApiGatewayRestApi"
-    #   Properties:
-    #     ResourceArn:
-    #       Fn::Sub: 'arn:aws:apigateway:${AWS::Region}::/restapis/${ApiGatewayRestApi}/stages/${self:provider.stage}'
-    #     WebACLArn: '${self:custom.stages.${self:provider.stage}.WEBACL_ARN}'
+    # this fails on first deploy because CloudFormation tries to create
+    # association but the gateway does not yet exist
+    FirewallAssociation:
+      Type: AWS::WAFv2::WebACLAssociation
+      DependsOn: "ApiGatewayRestApi"
+      Properties:
+        ResourceArn:
+          Fn::Sub: 'arn:aws:apigateway:${AWS::Region}::/restapis/${ApiGatewayRestApi}/stages/${self:provider.stage}'
+        WebACLArn: '${self:custom.stages.${self:provider.stage}.WEBACL_ARN}'
