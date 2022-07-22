@@ -2,7 +2,7 @@
 
 This is a serverless service that can transcode and transcribe mentorpal answer uploads:
 
-![high l evel architecture](./uploader-queues.drawio.png)
+![high level architecture](./uploader-step-functions.drawio.png)
 
 # Deployment instructions
 
@@ -52,14 +52,13 @@ curl -H "Authorization: Bearer ey***" https://<id>.execute-api.us-east-1.amazona
 # Monitoring
 
 All lambdas use sentry to report issues. If processing fails, SQS will move messages to corresponding DLQ,
-and there're alarms that monitor DLQs and send message to alerting topic (currently forwards to slack).
+and there're alarms that monitor DLQs and send message to an alerting SNS topic (currently forwards to slack).
 
 # Troubleshooting
 
 To retry processing after fixing a bug, go to 
-(AWS SQS console)[https://console.aws.amazon.com/sqs/v2/home?region=us-east-1#/queues]
-pick appropriate DLQ and poll for messages. Then simply copy each message back to
-the corresponding SQS and delete from DLQ. 
+(AWS Step Functions console)[https://us-east-1.console.aws.amazon.com/states/home]
+pick and restart the failed execution. This requires an existing task status in graphql!
 
 # Running locally
 
@@ -84,9 +83,10 @@ sls invoke --local -f <function> -p __events__/<event.json.dist>
 **Example**
 
 ```
-answer-transcribe.py -> handler to test
-answer-event.event.json -> your local copy of event.json.dist, which is ignored by git
-answer-event.event.json.dist -> reference event for other developers to be copied and used locally
+# answer-upload.py -> handler to test
+# answer-upload-event.event.json -> your local copy of event.json.dist, which is ignored by git
+# answer-upload-event.event.json.dist -> reference event for other developers to be copied and used locally
+sls invoke --local -f http_answer_upload -p __events__/answer-upload-event.event.json.dist
 ```
 
 To debug in VS Code, use this config:
