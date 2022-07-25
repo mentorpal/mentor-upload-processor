@@ -116,7 +116,7 @@
               "End": true,
               "Comment": "Submits a new AWS Transcription job, and does not wait for the job to complete. Task Token is used to track the job.",
               "Resource": "arn:aws:states:::lambda:invoke.waitForTaskToken",
-              "HeartbeatSeconds": 900,
+              "TimeoutSeconds": 900,
               "Parameters": {
                 "FunctionName": "arn:aws:lambda:${aws:region}:${aws:accountId}:function:${self:service}-${self:provider.stage}-step_transcribe_start",
                 "Payload": {
