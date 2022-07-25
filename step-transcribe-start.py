@@ -127,6 +127,11 @@ def process_task(request, task, task_token):
 
 
 def handler(event, context):
+    ''' For AWS Transcribe service integration, we use Task Token 
+    https://docs.aws.amazon.com/step-functions/latest/dg/connect-to-resource.html#connect-wait-token
+    This lambda is configured to receive a task token from the Step Function,
+    which pauses the execution of the workflow until the token is returned by the next lambda.
+    '''
     log.info(json.dumps(event))
 
     request = event["request"]

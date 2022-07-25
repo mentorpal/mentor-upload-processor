@@ -117,6 +117,11 @@ def process_event(record, mentor, question, stored_task):
 
 
 def handler(event, context):
+    ''' This lambda is triggered with an S3 event - when the transcribe job is done,
+    and NOT by the Step Function. Therefore it must in all scenarios report 
+    execution status back to the Step Function, otherwise the Step Function 
+    won't be able to continue execution.
+    '''
     log.info(json.dumps(event))
     for record in event["Records"]:
         key = record["s3"]["object"]["key"]
