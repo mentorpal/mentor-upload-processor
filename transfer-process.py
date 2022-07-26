@@ -8,10 +8,10 @@ import json
 import boto3
 import gzip
 from base64 import b64decode
-from module.utils import load_sentry, require_env
+from module.utils import load_sentry, require_env, s3_bucket
 from module.logger import get_logger
 from module.transfer import process_transfer_mentor
-from util import s3_bucket
+
 
 load_sentry()
 log = get_logger("transfer-process")

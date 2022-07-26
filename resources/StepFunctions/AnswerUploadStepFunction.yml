@@ -1,0 +1,6 @@
+StateMachine:
+  Type: AWS::StepFunctions::StateMachine
+  Properties:
+    StateMachineName: ${self:service}-answer-upload-${self:provider.stage}
+    DefinitionString: ${file(./resources/StepFunctions/exports.js):answerUploadStepFunction}
+    RoleArn: { 'Fn::GetAtt': ['AnswerUploadStepFunctionExecutionRole', 'Arn'] }

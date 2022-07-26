@@ -11,12 +11,17 @@ import os
 import logger
 import uuid
 from media_tools import video_to_audio, has_audio
-from api import (
+from module.utils import (
+    s3_bucket,
+    load_sentry,
+    require_env,
+    fetch_from_graphql,
+)
+from module.api import (
     UpdateTaskStatusRequest,
     fetch_question_name,
     upload_task_status_update,
 )
-from util import s3_bucket, require_env, load_sentry, fetch_from_graphql
 
 load_sentry()
 log = logger.get_logger("answer-transcribe-start-handler")
@@ -26,6 +31,7 @@ input_bucket = require_env("TRANSCRIBE_INPUT_BUCKET")
 output_bucket = require_env("TRANSCRIBE_OUTPUT_BUCKET")
 s3 = boto3.client("s3")
 transcribe = boto3.client("transcribe", region_name=aws_region)
+sfn_client = boto3.client("stepfunctions", region_name=aws_region)
 
 
 def is_idle_question(question_id: str) -> bool:
@@ -33,9 +39,10 @@ def is_idle_question(question_id: str) -> bool:
     return name == "_IDLE_"
 
 
-def transcribe_video(mentor, question, task_id, video_file):
+def transcribe_video(mentor, question, task_id, video_file, task_token):
     if not has_audio(video_file):  # this does not work on mac :/
         log.warn("video file does not contain any audio streams")
+        sfn_client.send_task_success(taskToken=task_token, output="{}")
         # continue to overwrite any existing previous transcript
     else:
         audio_file = video_to_audio(video_file)  # fails if no audio stream exists
@@ -67,15 +74,17 @@ def transcribe_video(mentor, question, task_id, video_file):
         log.info(job)
 
 
-def process_task(request, task):
+def process_task(request, task, task_token):
     stored_task = fetch_from_graphql(
         request["mentor"], request["question"], "transcribeTask"
     )
     if not stored_task:
         log.warn("task not found, skipping transcription")
+        sfn_client.send_task_success(taskToken=task_token, output="{}")
         return
     if stored_task["status"].startswith("CANCEL"):
         log.info("task cancelled, skipping transcription")
+        sfn_client.send_task_success(taskToken=task_token, output="{}")
         return
 
     is_idle = is_idle_question(request["question"])
@@ -88,13 +97,17 @@ def process_task(request, task):
                 transcribe_task={"status": "DONE"},
             )
         )
+        sfn_client.send_task_success(taskToken=task_token, output="{}")
         return
 
     upload_task_status_update(
         UpdateTaskStatusRequest(
             mentor=request["mentor"],
             question=request["question"],
-            transcribe_task={"status": "IN_PROGRESS"},
+            transcribe_task={
+                "status": "IN_PROGRESS",
+                "payload": task_token,
+            },
         )
     )
 
@@ -109,35 +122,24 @@ def process_task(request, task):
             request["question"],
             task["task_id"],
             work_file,
+            task_token,
         )
 
 
 def handler(event, context):
+    ''' For AWS Transcribe service integration, we use Task Token 
+    https://docs.aws.amazon.com/step-functions/latest/dg/connect-to-resource.html#connect-wait-token
+    This lambda is configured to receive a task token from the Step Function,
+    which pauses the execution of the workflow until the token is returned by the next lambda.
+    '''
     log.info(json.dumps(event))
-    for record in event["Records"]:
-        body = json.loads(str(record["body"]))
-        request = json.loads(str(body["Message"]))["request"]
-        task = request["transcribeTask"] if "transcribeTask" in request else None
-        if not task:
-            log.warning("transcribe task not requested")
-            return
 
-        try:
-            process_task(request, task)
-        except Exception as x:
-            log.error(x)
-            upload_task_status_update(
-                UpdateTaskStatusRequest(
-                    mentor=request["mentor"],
-                    question=request["question"],
-                    transcribe_task={"status": "FAILED"},
-                )
-            )
-            raise x
+    request = event["request"]
 
+    task = request["transcribeTask"] if "transcribeTask" in request else None
+    if not task:
+        log.warning("transcribe task not requested")
+        sfn_client.send_task_success(taskToken=event["task_token"], output="{}")
+        return
 
-# # for local debugging:
-# if __name__ == '__main__':
-#     with open('__events__/answer-event.json.dist') as f:
-#         event = json.loads(f.read())
-#         handler(event, {})
+    process_task(request, task, event["task_token"])
