@@ -10,35 +10,33 @@ import botocore
 import tempfile
 import os
 import logger
-from api import (
+from module.api import (
     AnswerUpdateRequest,
     UpdateTaskStatusRequest,
-    upload_task_status_update,
     upload_answer_and_task_status_update,
 )
-from util import s3_bucket, load_sentry, fetch_from_graphql
+from module.utils import (
+    s3_bucket,
+    load_sentry,
+    require_env,
+    fetch_from_graphql,
+)
 
 
 load_sentry()
 s3 = boto3.client("s3")
 log = logger.get_logger("answer-transcribe-handler")
+aws_region = require_env("REGION")
+sfn_client = boto3.client("stepfunctions", region_name=aws_region)
 
 
-def process_event(record):
+def process_event(record, mentor, question, stored_task):
     key = record["s3"]["object"]["key"]
     s3_path = os.path.dirname(key)
-    [mentor, question, task_id] = s3_path.split("/")
-    stored_task = fetch_from_graphql(mentor, question, "transcribeTask")
-    if not stored_task:
-        log.warn("task not found, skipping")
-        return
-    if stored_task["status"].startswith("CANCEL"):
-        log.info("task cancelled, skipping transcription")
-        return
 
     with tempfile.TemporaryDirectory() as work_dir:
         # since 2 files get dropped, there're 2 lambda invocations
-        # its possible that not both files are in s3 when lambda runs first time
+        # its possible that not both files are in s3 when lambda runs for the first time
 
         try:
             job_file = os.path.join(work_dir, "transcribe.json")
@@ -73,7 +71,7 @@ def process_event(record):
                     transcribe_task={"status": "DONE"},
                 ),
             )
-            return
+            sfn_client.send_task_success(taskToken=stored_task["payload"], output="{}")
 
         try:
             vtt_file = os.path.join(work_dir, "transcribe.vtt")
@@ -115,30 +113,38 @@ def process_event(record):
                 vtt_media=vtt_media,
             ),
         )
+        sfn_client.send_task_success(taskToken=stored_task["payload"], output="{}")
 
 
 def handler(event, context):
+    """This lambda is triggered with an S3 event - when the transcribe job is done,
+    and NOT by the Step Function. Therefore it must in all scenarios report
+    execution status back to the Step Function, otherwise the Step Function
+    won't be able to continue execution.
+    """
     log.info(json.dumps(event))
     for record in event["Records"]:
-        try:
-            process_event(record)
-        except Exception as x:
-            log.error(x)
-            key = record["s3"]["object"]["key"]
-            s3_path = os.path.dirname(key)
-            [mentor, question, task_id] = s3_path.split("/")
-            upload_task_status_update(
-                UpdateTaskStatusRequest(
-                    mentor=mentor,
-                    question=question,
-                    transcribe_task={"status": "FAILED"},
-                )
+        key = record["s3"]["object"]["key"]
+        s3_path = os.path.dirname(key)
+        [mentor, question, *_] = s3_path.split("/")
+        stored_task = fetch_from_graphql(mentor, question, task_name="transcribeTask")
+        if not stored_task:
+            log.warn(
+                "task not found, cannot continue! step function will have to timeout"
             )
-            raise x
+            return
+        if stored_task["status"].startswith("CANCEL"):
+            log.info("task cancelled, skipping transcription")
+            sfn_client.send_task_success(taskToken=stored_task["payload"], output="{}")
+            return
 
-
-# # for local debugging:
-# if __name__ == '__main__':
-#     with open('__events__/transcribe-collect-event.json.dist') as f:
-#         event = json.loads(f.read())
-#         handler(event, {})
+        try:
+            process_event(record, mentor, question, stored_task)
+        except Exception as err:
+            log.error(err)
+            sfn_client.send_task_failure(
+                taskToken=stored_task["payload"],
+                error=str(err),
+                cause=str(err.__cause__),
+            )
+            raise err

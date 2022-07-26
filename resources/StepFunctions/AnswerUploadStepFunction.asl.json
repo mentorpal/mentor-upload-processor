@@ -1,0 +1,206 @@
+{
+  "StartAt": "IsTrimRequired",
+  "States": {
+    "IsTrimRequired": {
+      "Type": "Choice",
+      "Comment": "Check if trimming is requested",
+      "Choices": [
+        {
+          "Variable": "$.request.trim",
+          "IsPresent": true,
+          "Next": "TrimUpload"
+        }
+      ],
+      "Default": "TriggerProcessing"
+    },
+    "TrimUpload": {
+      "Type": "Task",
+      "Comment": "Trim video and re-upload to S3",
+      "Resource": "arn:aws:lambda:${aws:region}:${aws:accountId}:function:${self:service}-${self:provider.stage}-step_trim",
+      "Parameters": {
+        "request.$": "$.request"
+      },
+      "ResultPath": null,
+      
+      "Next": "TriggerProcessing",
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "States.TaskFailed"
+          ],
+          "IntervalSeconds": 1,
+          "MaxAttempts": 2,
+          "BackoffRate": 2.0
+        }
+      ],
+      "Catch": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "ResultPath": "$.exception",
+          "Next": "ErrorHandler"
+        }
+      ]
+    },
+    "TriggerProcessing": {
+      "Type": "Parallel",
+      "Next": "Finish",
+      "Catch": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "ResultPath": "$.exception",
+          "Next": "ErrorHandler"
+        }
+      ],
+      "Parameters": {
+        "request.$": "$.request"
+      },
+      "ResultPath": null,
+      "Branches": [
+        {
+          "StartAt": "Transcode Web",
+          "States": {
+            "Transcode Web": {
+              "Type": "Task",
+              "End": true,
+              "Comment": "Transcode video to web format",
+              "Resource": "arn:aws:lambda:${aws:region}:${aws:accountId}:function:${self:service}-${self:provider.stage}-step_transcode_web",
+              "Parameters": {
+                "request.$": "$.request"
+              },
+              "Retry": [
+                {
+                  "ErrorEquals": [
+                    "States.TaskFailed"
+                  ],
+                  "IntervalSeconds": 10,
+                  "MaxAttempts": 2,
+                  "BackoffRate": 2.0
+                }
+              ]
+            }
+          }
+        },
+        {
+          "StartAt": "Transcode Mobile",
+          "States": {
+            "Transcode Mobile": {
+              "Type": "Task",
+              "End": true,
+              "Comment": "Transcode video to mobile format",
+              "Resource": "arn:aws:lambda:${aws:region}:${aws:accountId}:function:${self:service}-${self:provider.stage}-step_transcode_mobile",
+              "Parameters": {
+                "request.$": "$.request"
+              },
+              "Retry": [
+                {
+                  "ErrorEquals": [
+                    "States.TaskFailed"
+                  ],
+                  "IntervalSeconds": 10,
+                  "MaxAttempts": 2,
+                  "BackoffRate": 2.0
+                }
+              ]
+            }
+          }
+        },
+        {
+          "StartAt": "StartTranscribeJob",
+          "States": {
+            "StartTranscribeJob": {
+              "Type": "Task",
+              "End": true,
+              "Comment": "Submits a new AWS Transcription job, and does not wait for the job to complete. Task Token is used to track the job.",
+              "Resource": "arn:aws:states:::lambda:invoke.waitForTaskToken",
+              "TimeoutSeconds": 900,
+              "Parameters": {
+                "FunctionName": "arn:aws:lambda:${aws:region}:${aws:accountId}:function:${self:service}-${self:provider.stage}-step_transcribe_start",
+                "Payload": {
+                  "request.$": "$.request",
+                  "task_token.$": "$$.Task.Token"
+                }
+              },
+              "Retry": [
+                {
+                  "ErrorEquals": [
+                    "States.TaskFailed"
+                  ],
+                  "IntervalSeconds": 30,
+                  "MaxAttempts": 2,
+                  "BackoffRate": 2.0
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "ErrorHandler": {
+      "Type": "Parallel",
+      "Next": "Finish",
+      "Parameters": {
+        "request.$": "$.request",
+        "error.$": "$.exception.Error",
+        "cause.$": "$.exception.Cause"
+      },
+      "Branches": [
+        {
+          "StartAt": "Mark as failed",
+          "States": {
+            "Mark as failed": {
+              "Type": "Task",
+              "End": true,
+              "Comment": "Mark video upload in graphql as failed",
+              "Resource": "arn:aws:lambda:${aws:region}:${aws:accountId}:function:${self:service}-${self:provider.stage}-step_mark_failed",
+              "Retry": [
+                {
+                  "ErrorEquals": [
+                    "States.TaskFailed"
+                  ],
+                  "IntervalSeconds": 5,
+                  "MaxAttempts": 3,
+                  "BackoffRate": 2.0
+                }
+              ]
+            }
+          }
+        },
+        {
+          "StartAt": "Send to DLQ",
+          "States": {
+            "Send to DLQ": {
+              "Type": "Task",
+              "End": true,
+              "Comment": "Send a message to the DLQ for alerting",
+              "Resource": "arn:aws:states:::sqs:sendMessage",
+              "Parameters": {
+                "QueueUrl": "https://sqs.${aws:region}.amazonaws.com/${aws:accountId}/answer-upload-dlq-${self:provider.stage}",
+                "MessageBody": {
+                  "request.$": "$.request",
+                  "executionId.$": "$$.Execution.Id"
+                }
+              },
+              "ResultPath": "$.dlqInputResult",
+              "Retry": [
+                {
+                  "ErrorEquals": ["States.TaskFailed"],
+                  "IntervalSeconds": 5,
+                  "MaxAttempts": 3,
+                  "BackoffRate": 2.0
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "Finish": {
+      "Type": "Pass",
+      "End": true
+    }
+  }
+}

@@ -13,7 +13,7 @@ from module.logger import get_logger
 import jsonschema
 
 
-log = get_logger()
+log = get_logger("graphql-api")
 
 
 def get_graphql_endpoint() -> str:
@@ -36,6 +36,7 @@ class Media:
 class TaskInfo:
     task_id: str
     status: str
+    payload: str
 
 
 @dataclass
@@ -295,6 +296,7 @@ def fetch_task_gql(mentor_id: str, question_id) -> GQLQueryBody:
                 transcribeTask{
                     task_id
                     status
+                    payload
                 }
                 trimUploadTask{
                     task_id
@@ -341,6 +343,8 @@ def upload_task_status_req_gql(req: UpdateTaskStatusRequest) -> GQLQueryBody:
     variables = {"mentorId": req.mentor, "questionId": req.question}
 
     variables["uploadTaskStatusInput"] = {}
+    if req.trim_upload_task:
+        variables["uploadTaskStatusInput"]["trimUploadTask"] = req.trim_upload_task
     if req.transcript:
         variables["uploadTaskStatusInput"]["transcript"] = req.transcript
     if req.transcode_web_task:
@@ -884,3 +888,78 @@ def upload_answer_and_task_update(
     tdjson = res.json()
     if "errors" in tdjson:
         raise Exception(json.dumps(tdjson.get("errors")))
+
+
+fetch_answer_transcript_media_json_schema = {
+    "type": "object",
+    "properties": {
+        "data": {
+            "type": "object",
+            "properties": {
+                "answer": {
+                    "type": "object",
+                    "properties": {
+                        "transcript": {"type": "string"},
+                        "webMedia": {
+                            "type": ["object", "null"],
+                            "properties": {
+                                "type": {"type": "string"},
+                                "tag": {"type": "string"},
+                                "url": {"type": "string"},
+                            },
+                        },
+                        "mobileMedia": {
+                            "type": ["object", "null"],
+                            "properties": {
+                                "type": {"type": "string"},
+                                "tag": {"type": "string"},
+                                "url": {"type": "string"},
+                            },
+                        },
+                    },
+                    "required": ["transcript", "webMedia", "mobileMedia"],
+                }
+            },
+            "required": ["answer"],
+        },
+    },
+    "required": ["data"],
+}
+
+
+def fetch_answer_transcript_and_media_gql(mentor: str, question: str) -> GQLQueryBody:
+    return {
+        "query": """query Answer($mentor: ID!, $question: ID!) {
+            answer(mentor: $mentor, question: $question){
+                transcript
+                webMedia {
+                    type
+                    tag
+                    url
+                }
+                mobileMedia{
+                    type
+                    tag
+                    url
+                }
+            }
+        }""",
+        "variables": {"mentor": mentor, "question": question},
+    }
+
+
+def fetch_answer_transcript_and_media(mentor: str, question: str):
+    headers = {"mentor-graphql-req": "true", "Authorization": f"bearer {get_api_key()}"}
+    gql_query = fetch_answer_transcript_and_media_gql(mentor, question)
+    json_res = exec_graphql_with_json_validation(
+        gql_query, fetch_answer_transcript_media_json_schema, headers=headers
+    )
+    answer_data = json_res["data"]["answer"]
+    web_media = answer_data["webMedia"]
+    mobile_media = answer_data["mobileMedia"]
+    transcript = answer_data["transcript"]
+    if web_media is None and mobile_media is None:
+        raise Exception(
+            f"No video media found for mentor {mentor} and question {question}"
+        )
+    return (transcript, web_media or mobile_media)
