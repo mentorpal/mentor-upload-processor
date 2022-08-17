@@ -76,6 +76,10 @@ def create_task_list(trim, has_edited_transcript):
 
 def upload_to_s3(file_path, s3_path, mentor, question):
     log.info("uploading %s to %s", file_path, s3_path)
+    video_mime_type = "video/webm"  # TODO: magic.from_file(video_file, mime=True)
+    log.debug(f"video mime type: {video_mime_type}")
+    if video_mime_type not in ["video/mp4", "video/webm"]:
+        raise Exception(f"Unsupported video mime type: {video_mime_type}")
 
     # to prevent data inconsistency by partial failures (new web.mp3 - old transcript...)
     # first remove old media urls from DB
@@ -88,9 +92,17 @@ def upload_to_s3(file_path, s3_path, mentor, question):
             vtt_media={"type": "subtitles", "tag": "en", "url": ""},
         )
     )
-
     # then remove old media in s3
-    all_artifacts = ["original.mp4", "web.mp4", "mobile.mp4", "en.vtt"]
+    all_artifacts = [
+        "original",
+        "original.mp4",
+        "original.webm",
+        "web.mp4",
+        "web.webm",
+        "mobile.mp4",
+        "mobile.webm",
+        "en.vtt",
+    ]
     s3_client.delete_objects(
         Bucket=s3_bucket,
         Delete={"Objects": [{"Key": f"{s3_path}/{name}"} for name in all_artifacts]},
@@ -99,8 +111,8 @@ def upload_to_s3(file_path, s3_path, mentor, question):
     s3_client.upload_file(
         file_path,
         s3_bucket,
-        f"{s3_path}/original.mp4",
-        ExtraArgs={"ContentType": "video/mp4"},
+        f"{s3_path}/original",
+        ExtraArgs={"ContentType": video_mime_type},
     )
 
 
@@ -166,7 +178,7 @@ def handler(event, context):
         return create_json_response(401, data, event)
 
     with tempfile.TemporaryDirectory() as work_dir:
-        file_path = os.path.join(work_dir, "original.mp4")
+        file_path = os.path.join(work_dir, "original")
         s3_client.download_file(upload_bucket, video_key, file_path)
 
         if not assert_video_duration(file_path, 1000):
@@ -196,7 +208,7 @@ def handler(event, context):
         "request": {
             "mentor": mentor,
             "question": question,
-            "video": f"{s3_path}/original.mp4",
+            "video": f"{s3_path}/original",
             **({"trim": trim} if trim is not None else {}),
             "transcodeWebTask": transcode_web_task,
             "transcodeMobileTask": transcode_mobile_task,

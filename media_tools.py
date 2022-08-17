@@ -114,8 +114,9 @@ def output_args_video_encode_for_mobile(
     )
 
 
-def output_args_video_encode_for_web(
+def get_args_video_encode_for_web(
     src_file: str,
+    video_mime_type: str,
     max_height=720,
     target_aspect=1.77777777778,
     video_dims: Optional[Tuple[int, int]] = None,
@@ -136,25 +137,52 @@ def output_args_video_encode_for_web(
         o_w += 1  # ensure width is divisible by 2
     if o_h % 2 != 0:
         o_h += 1  # ensure height is divisible by 2
-    return (
-        "-y",
-        "-filter:v",
-        f"crop=iw-{crop_w:.0f}:ih-{crop_h:.0f},scale={o_w:.0f}:{o_h:.0f}",
-        "-c:v",
-        "libx264",
-        "-crf",
-        "23",
-        "-pix_fmt",
-        "yuv420p",
-        "-movflags",
-        "+faststart",
-        "-c:a",
-        "aac",
-        "-ac",
-        "1",
-        "-loglevel",
-        "quiet",
-    )
+    if video_mime_type == "video/mp4":
+        return None, (
+            "-y",
+            "-filter:v",
+            f"crop=iw-{crop_w:.0f}:ih-{crop_h:.0f},scale={o_w:.0f}:{o_h:.0f}",
+            "-c:v",
+            "libx264",
+            "-crf",
+            "23",
+            "-pix_fmt",
+            "yuv420p",
+            "-movflags",
+            "+faststart",
+            "-c:a",
+            "aac",
+            "-ac",
+            "1",
+            "-loglevel",
+            "quiet",
+        )
+    elif video_mime_type == "video/webm":
+        return ("-c:v", "libvpx-vp9"), (
+            "-y",
+            "-filter:v",
+            f"crop=iw-{crop_w:.0f}:ih-{crop_h:.0f},scale={o_w:.0f}:{o_h:.0f}",
+            "-c:v",
+            "libvpx-vp9",  # vp9 codec supports alpha channel
+            "-crf",
+            "23",
+            "-pix_fmt",
+            "yuva420p",  # add alpha channel
+            "-movflags",
+            "+faststart",
+            "-c:a",
+            "aac",
+            "-ac",
+            "1",
+            "-loglevel",
+            "quiet",
+            "-metadata:s:v:0",
+            'alpha_mode="1"',
+            "-acodec",
+            "libvorbis",
+        )
+    else:
+        raise Exception(f"Unsupported file mime type: {video_mime_type}")
 
 
 def output_args_video_to_audio() -> Tuple[str, ...]:
@@ -178,17 +206,22 @@ def video_encode_for_mobile(src_file: str, tgt_file: str, target_height=480) -> 
 
 
 def video_encode_for_web(
-    src_file: str, tgt_file: str, max_height=720, target_aspect=1.77777777778
+    src_file: str,
+    tgt_file: str,
+    video_mime_type: str,
+    max_height=720,
+    target_aspect=1.77777777778,
 ) -> None:
     log.info("%s, %s, %s, %s", src_file, tgt_file, max_height, target_aspect)
     os.makedirs(os.path.dirname(tgt_file), exist_ok=True)
+
+    input_args, output_args = get_args_video_encode_for_web(
+        src_file, video_mime_type, max_height=max_height, target_aspect=target_aspect
+    )
+
     ff = ffmpy.FFmpeg(
-        inputs={str(src_file): None},
-        outputs={
-            str(tgt_file): output_args_video_encode_for_web(
-                src_file, max_height=max_height, target_aspect=target_aspect
-            )
-        },
+        inputs={str(src_file): input_args},
+        outputs={str(tgt_file): output_args},
         executable=FFMPEG_EXECUTABLE,
     )
     ff.run()
