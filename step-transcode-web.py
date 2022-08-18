@@ -10,8 +10,8 @@ import tempfile
 import os
 import logger
 
-# import magic
-from media_tools import video_encode_for_web
+from module.constants import supported_video_types, Supported_Video_Type
+from media_tools import video_encode_for_web, get_file_mime
 from module.api import (
     UpdateTaskStatusRequest,
     AnswerUpdateRequest,
@@ -19,6 +19,7 @@ from module.api import (
     upload_answer_and_task_status_update,
 )
 from module.utils import (
+    get_file_extension_from_s3_key,
     s3_bucket,
     load_sentry,
     fetch_from_graphql,
@@ -29,25 +30,19 @@ log = logger.get_logger("answer-transcode-web-handler")
 s3 = boto3.client("s3")
 
 
-def transcode_web(video_file, s3_path):
+def transcode_web(video_file, video_file_type: Supported_Video_Type, s3_path):
     work_dir = os.path.dirname(video_file)
-    video_mime_type = "video/webm"  # TODO: magic.from_file(video_file, mime=True)
-    log.debug(f"video mime type: {video_mime_type}")
-    if video_mime_type == "video/mp4":
-        target_file = "web.mp4"
-    elif video_mime_type == "video/webm":
-        target_file = "web.webm"
-    else:
-        raise Exception(f"Unsupported video mime type: {video_mime_type}")
+    target_file = f"web.{video_file_type.extension}"
     target_file_path = os.path.join(work_dir, target_file)
-    video_encode_for_web(video_file, target_file_path, video_mime_type)
+
+    video_encode_for_web(video_file, target_file_path, video_file_type.mime)
 
     log.info("uploading %s to %s/%s", target_file_path, s3_bucket, s3_path)
     s3.upload_file(
         target_file_path,
         s3_bucket,
         f"{s3_path}/{target_file}",
-        ExtraArgs={"ContentType": video_mime_type},
+        ExtraArgs={"ContentType": video_file_type.mime},
     )
 
 
@@ -64,8 +59,19 @@ def process_task(request):
         log.info("task cancelled, skipping transcription")
         return
 
+    video_file_extension = get_file_extension_from_s3_key(request["video"])
+
+    try:
+        video_file_type = next(
+            video_type
+            for video_type in supported_video_types
+            if video_type.extension == video_file_extension
+        )
+    except Exception:
+        raise Exception(f"Unsupported video extension type: {video_file_extension}")
+
     with tempfile.TemporaryDirectory() as work_dir:
-        work_file = os.path.join(work_dir, "original")
+        work_file = os.path.join(work_dir, f"original.{video_file_type.extension}")
         s3.download_file(s3_bucket, request["video"], work_file)
         s3_path = os.path.dirname(request["video"])
         log.info("%s downloaded to %s", request["video"], work_dir)
@@ -76,12 +82,12 @@ def process_task(request):
                 transcode_web_task={"status": "IN_PROGRESS"},
             )
         )
-        transcode_web(work_file, s3_path)
+        transcode_web(work_file, video_file_type, s3_path)
 
         web_media = {
             "type": "video",
             "tag": "web",
-            "url": f"{s3_path}/web.mp4",
+            "url": f"{s3_path}/web.{video_file_type.extension}",
         }
 
         upload_answer_and_task_status_update(

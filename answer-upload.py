@@ -11,7 +11,8 @@ import base64
 import tempfile
 import os
 
-from media_tools import assert_video_duration
+from module.constants import Supported_Video_Type, supported_video_types
+from media_tools import assert_video_duration, get_file_mime, get_video_file_type
 from module.utils import (
     create_json_response,
     s3_bucket,
@@ -74,12 +75,10 @@ def create_task_list(trim, has_edited_transcript):
     return transcode_web_task, transcode_mobile_task, transcribe_task, trim_upload_task
 
 
-def upload_to_s3(file_path, s3_path, mentor, question):
+def upload_to_s3(
+    file_path, video_file_type: Supported_Video_Type, s3_path, mentor, question
+):
     log.info("uploading %s to %s", file_path, s3_path)
-    video_mime_type = "video/webm"  # TODO: magic.from_file(video_file, mime=True)
-    log.debug(f"video mime type: {video_mime_type}")
-    if video_mime_type not in ["video/mp4", "video/webm"]:
-        raise Exception(f"Unsupported video mime type: {video_mime_type}")
 
     # to prevent data inconsistency by partial failures (new web.mp3 - old transcript...)
     # first remove old media urls from DB
@@ -93,14 +92,13 @@ def upload_to_s3(file_path, s3_path, mentor, question):
         )
     )
     # then remove old media in s3
+    supported_extensions = list(
+        map(lambda video_type: video_type.extension, supported_video_types)
+    )
     all_artifacts = [
-        "original",
-        "original.mp4",
-        "original.webm",
-        "web.mp4",
-        "web.webm",
-        "mobile.mp4",
-        "mobile.webm",
+        *[f"original.{extension}" for extension in supported_extensions],
+        *[f"web.{extension}" for extension in supported_extensions],
+        *[f"mobile.{extension}" for extension in supported_extensions],
         "en.vtt",
     ]
     s3_client.delete_objects(
@@ -111,14 +109,16 @@ def upload_to_s3(file_path, s3_path, mentor, question):
     s3_client.upload_file(
         file_path,
         s3_bucket,
-        f"{s3_path}/original",
-        ExtraArgs={"ContentType": video_mime_type},
+        f"{s3_path}/original.{video_file_type.extension}",
+        ExtraArgs={"ContentType": video_file_type.mime},
     )
 
 
-def get_original_video_url(mentor: str, question: str) -> str:
+def get_original_video_url(
+    mentor: str, question: str, video_file_type: Supported_Video_Type
+) -> str:
     base_url = os.environ.get("STATIC_URL_BASE", "")
-    return f"{base_url}/videos/{mentor}/{question}/original.mp4"
+    return f"{base_url}/videos/{mentor}/{question}/original.{video_file_type.extension}"
 
 
 def handler(event, context):
@@ -178,8 +178,11 @@ def handler(event, context):
         return create_json_response(401, data, event)
 
     with tempfile.TemporaryDirectory() as work_dir:
-        file_path = os.path.join(work_dir, "original")
+        file_path = os.path.join(
+            work_dir, "original_video"
+        )  # don't assume video file type
         s3_client.download_file(upload_bucket, video_key, file_path)
+        video_file_type = get_video_file_type(file_path)
 
         if not assert_video_duration(file_path, 1000):
             data = {
@@ -190,7 +193,7 @@ def handler(event, context):
 
         s3_path = f"videos/{mentor}/{question}"
         # this will overwrite any existing file
-        upload_to_s3(file_path, s3_path, mentor, question)
+        upload_to_s3(file_path, video_file_type, s3_path, mentor, question)
 
     (
         transcode_web_task,
@@ -208,7 +211,7 @@ def handler(event, context):
         "request": {
             "mentor": mentor,
             "question": question,
-            "video": f"{s3_path}/original",
+            "video": f"{s3_path}/original.{video_file_type.extension}",
             **({"trim": trim} if trim is not None else {}),
             "transcodeWebTask": transcode_web_task,
             "transcodeMobileTask": transcode_mobile_task,
@@ -217,7 +220,7 @@ def handler(event, context):
         }
     }
 
-    original_video_url = get_original_video_url(mentor, question)
+    original_video_url = get_original_video_url(mentor, question, video_file_type)
     # we risk here overriding values, perhaps processing was already done, so status is DONE
     # but this will overwrite and revert them back to QUEUED. Can we just append?
     upload_answer_and_task_update(

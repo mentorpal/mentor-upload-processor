@@ -6,6 +6,8 @@ import logging
 import urllib.request
 from os import remove
 
+from ..media_tools import get_video_file_type
+
 from .api import (
     ImportMentorGQLRequest,
     import_mentor_gql,
@@ -192,13 +194,19 @@ def process_transfer_mentor(s3_client, s3_bucket, req: ProcessTransferMentor):
                 if m.get("needsTransfer", False):
                     typ = m.get("type", "")
                     tag = m.get("tag", "")
-                    root_ext = "vtt" if typ == "subtitles" else "mp4"
                     try:
                         file_path, headers = urllib.request.urlretrieve(
                             m.get("url", "")
                         )
+                        video_file_type = get_video_file_type(file_path)
+                        root_ext = (
+                            "vtt" if typ == "subtitles" else video_file_type.extension
+                        )
+                        # Determine file type here
                         item_path = f"videos/{mentor}/{question}/{tag}.{root_ext}"
-                        content_type = "text/vtt" if typ == "subtitles" else "video/mp4"
+                        content_type = (
+                            "text/vtt" if typ == "subtitles" else video_file_type.mime
+                        )
                         s3_client.upload_file(
                             file_path,
                             s3_bucket,
