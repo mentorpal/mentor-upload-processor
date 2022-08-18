@@ -9,7 +9,7 @@ import boto3
 import tempfile
 import os
 import logger
-from media_tools import video_encode_for_mobile, get_file_mime
+from media_tools import get_video_file_type, video_encode_for_mobile, get_file_mime
 from module.api import (
     UpdateTaskStatusRequest,
     AnswerUpdateRequest,
@@ -58,20 +58,10 @@ def process_task(request):
         log.info("task cancelled, skipping transcription")
         return
 
-    video_file_extension = get_file_extension_from_s3_key(request["video"])
-
-    try:
-        video_file_type = next(
-            video_type
-            for video_type in supported_video_types
-            if video_type.extension == video_file_extension
-        )
-    except Exception:
-        raise Exception(f"Unsupported video extension type: {video_file_extension}")
-
     with tempfile.TemporaryDirectory() as work_dir:
-        work_file = os.path.join(work_dir, f"original.{video_file_type.extension}")
+        work_file = os.path.join(work_dir, f"original_video")
         s3.download_file(s3_bucket, request["video"], work_file)
+        video_file_type = get_video_file_type(work_file)
         s3_path = os.path.dirname(request["video"])  # same 'folder' as original file
         log.info("%s downloaded to %s", request["video"], work_dir)
 

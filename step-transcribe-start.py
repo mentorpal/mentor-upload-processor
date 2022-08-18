@@ -12,7 +12,6 @@ import logger
 import uuid
 from media_tools import video_to_audio, has_audio
 from module.utils import (
-    get_file_extension_from_s3_key,
     s3_bucket,
     load_sentry,
     require_env,
@@ -23,7 +22,6 @@ from module.api import (
     fetch_question_name,
     upload_task_status_update,
 )
-from module.constants import supported_video_types
 
 load_sentry()
 log = logger.get_logger("answer-transcribe-start-handler")
@@ -115,19 +113,8 @@ def process_task(request, task, task_token):
 
     log.info("video to process %s", request["video"])
 
-    video_file_extension = get_file_extension_from_s3_key(request["video"])
-
-    try:
-        video_file_type = next(
-            video_type
-            for video_type in supported_video_types
-            if video_type.extension == video_file_extension
-        )
-    except Exception:
-        raise Exception(f"Unsupported video extension type: {video_file_extension}")
-
     with tempfile.TemporaryDirectory() as work_dir:
-        work_file = os.path.join(work_dir, f"original.{video_file_type.extension}")
+        work_file = os.path.join(work_dir, f"original_video")
         s3.download_file(s3_bucket, request["video"], work_file)
         log.info("%s downloaded to %s", request["video"], work_dir)
 

@@ -12,7 +12,7 @@ import tempfile
 import os
 
 from module.constants import Supported_Video_Type, supported_video_types
-from media_tools import assert_video_duration, get_file_mime, get_video_file_type
+from media_tools import assert_video_duration, get_video_file_type
 from module.utils import (
     create_json_response,
     s3_bucket,
