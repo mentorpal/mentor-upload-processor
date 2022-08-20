@@ -81,6 +81,12 @@ class MentorThumbnailUpdateRequest:
 
 
 @dataclass
+class MentorVbgUpdateRequest:
+    mentor: str
+    vbgPath: str
+
+
+@dataclass
 class FetchUploadTaskReq:
     mentor: str
     question: str
@@ -484,6 +490,28 @@ def thumbnail_update_gql(req: MentorThumbnailUpdateRequest) -> GQLQueryBody:
 def mentor_thumbnail_update(req: MentorThumbnailUpdateRequest) -> None:
     headers = {"mentor-graphql-req": "true", "Authorization": f"bearer {get_api_key()}"}
     body = thumbnail_update_gql(req)
+    log.debug(body)
+    res = requests.post(get_graphql_endpoint(), json=body, headers=headers)
+    res.raise_for_status()
+    tdjson = res.json()
+    if "errors" in tdjson:
+        raise Exception(json.dumps(tdjson.get("errors")))
+
+
+def vbg_update_gql(req: MentorVbgUpdateRequest) -> GQLQueryBody:
+    return {
+        "query": """mutation MentorVbgUpdate($mentorId: ID!, $vbgPath: String!) {
+          api {
+            mentorVbgUpdate(mentorId: $mentorId, vbgPath: $vbgPath)
+          }
+        }""",
+        "variables": {"mentorId": req.mentor, "vbgPath": req.vbgPath},
+    }
+
+
+def mentor_vbg_update(req: MentorVbgUpdateRequest) -> None:
+    headers = {"mentor-graphql-req": "true", "Authorization": f"bearer {get_api_key()}"}
+    body = vbg_update_gql(req)
     log.debug(body)
     res = requests.post(get_graphql_endpoint(), json=body, headers=headers)
     res.raise_for_status()
