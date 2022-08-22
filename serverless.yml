@@ -222,6 +222,21 @@ functions:
             identitySource: method.request.header.Authorization
             type: token
 
+  http_vbg:
+    handler: vbg_upload.handler
+    memorySize: 1024
+    timeout: 30 # 30sec is max for http requests
+    events:
+      - http:
+          path: /vbg
+          method: post
+          cors: true
+          authorizer:
+            name: authorizer_func
+            resultTtlInSeconds: 300
+            identitySource: method.request.header.Authorization
+            type: token
+
   http_transfer_start:
     handler: transfer-start.handler
     memorySize: 512
