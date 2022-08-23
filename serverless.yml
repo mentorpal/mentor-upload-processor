@@ -9,8 +9,7 @@
 service: mentorpal-upload-sm
 
 # pin to only deploy with a specific Serverless version
-frameworkVersion: '2'
-variablesResolutionMode: 20210326
+frameworkVersion: '3'
 
 plugins:
   - serverless-deployment-bucket
@@ -95,7 +94,6 @@ provider:
     PROJECT: ${self:service}-${self:provider.stage}
     REPOSITORY: mentor-upload
   runtime: python3.8
-  lambdaHashingVersion: 20201221
   architecture: x86_64 # because of the static ffmpeg binaries and python dependencies
   endpointType: regional
   apiGateway:

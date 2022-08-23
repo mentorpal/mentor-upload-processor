@@ -1,12 +1,12 @@
 {
-  "name": "queue_processor",
+  "name": "upload-processor",
   "version": "1.0.0",
   "description": "Serverless video upload processor",
   "devDependencies": {
-    "serverless": "^2.72.1",
-    "serverless-deployment-bucket": "^1.5.1",
-    "serverless-domain-manager": "^6.0.3",
-    "serverless-layers": "^2.5.1"
+    "serverless": "^3.22.0",
+    "serverless-deployment-bucket": "^1.6.0",
+    "serverless-domain-manager": "^6.1.0",
+    "serverless-layers": "^2.5.4"
   },
   "scripts": {
     "deploy:dev": "sls deploy -s dev --region us-east-1",
