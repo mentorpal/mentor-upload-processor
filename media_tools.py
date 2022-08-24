@@ -75,8 +75,18 @@ def format_secs(secs: Union[float, int, str]) -> str:
     return f"{float(str(secs)):.3f}"
 
 
-def output_args_trim_video(start_secs: float, end_secs: float) -> Tuple[str, ...]:
+def output_args_trim_video(
+    start_secs: float, end_secs: float, src_file: str
+) -> Tuple[str, ...]:
+    i_w, i_h = find_video_dims(src_file)
+    o_w = int(i_w)
+    o_h = int(i_h)
+    if o_w % 2 != 0:
+        o_w += 1  # ensure width is divisible by 2
+    if o_h % 2 != 0:
+        o_h += 1  # ensure height is divisible by 2
     return (
+        f"scale={o_w:.0f}:{o_h:.0f}",
         "-ss",
         format_secs(start_secs),
         "-to",
