@@ -9,7 +9,7 @@ import boto3
 import tempfile
 import os
 import logger
-from media_tools import get_video_file_type, video_encode_for_mobile, get_file_mime
+from media_tools import get_video_file_type, video_encode_for_mobile
 from module.api import (
     UpdateTaskStatusRequest,
     AnswerUpdateRequest,
@@ -17,12 +17,11 @@ from module.api import (
     upload_answer_and_task_status_update,
 )
 from module.utils import (
-    get_file_extension_from_s3_key,
     s3_bucket,
     load_sentry,
     fetch_from_graphql,
 )
-from module.constants import supported_video_types, Supported_Video_Type
+from module.constants import Supported_Video_Type
 
 load_sentry()
 log = logger.get_logger("answer-transcode-mobile-handler")
@@ -59,7 +58,7 @@ def process_task(request):
         return
 
     with tempfile.TemporaryDirectory() as work_dir:
-        work_file = os.path.join(work_dir, f"original_video")
+        work_file = os.path.join(work_dir, "original_video")
         s3.download_file(s3_bucket, request["video"], work_file)
         video_file_type = get_video_file_type(work_file)
         s3_path = os.path.dirname(request["video"])  # same 'folder' as original file

@@ -59,7 +59,7 @@ def process_task(request):
         return
 
     with tempfile.TemporaryDirectory() as work_dir:
-        work_file = os.path.join(work_dir, f"original_video")
+        work_file = os.path.join(work_dir, "original_video")
         s3.download_file(s3_bucket, request["video"], work_file)
         video_file_type = get_video_file_type(work_file)
         s3_path = os.path.dirname(request["video"])
