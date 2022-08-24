@@ -112,8 +112,9 @@ def process_task(request, task, task_token):
     )
 
     log.info("video to process %s", request["video"])
+
     with tempfile.TemporaryDirectory() as work_dir:
-        work_file = os.path.join(work_dir, "original.mp4")
+        work_file = os.path.join(work_dir, f"original_video")
         s3.download_file(s3_bucket, request["video"], work_file)
         log.info("%s downloaded to %s", request["video"], work_dir)
 

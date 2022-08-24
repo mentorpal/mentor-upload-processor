@@ -30,6 +30,12 @@ log.info("using s3 bucket %s", s3_bucket)
 
 aws_region = require_env("REGION")
 
+# s3_key format: */*/*.extension
+def get_file_extension_from_s3_key(s3_key: str) -> str:
+    video_file_name = s3_key.split("/")[-1]
+    video_file_extension = video_file_name.split(".")[-1]
+    return video_file_extension
+
 
 def load_sentry():
     if environ.get("IS_SENTRY_ENABLED", "") == "true":
