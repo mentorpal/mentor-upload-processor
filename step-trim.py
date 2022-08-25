@@ -8,13 +8,12 @@ import json
 import boto3
 import tempfile
 import os
-from media_tools import get_file_mime
+from media_tools import get_file_mime, video_trim
 
 from module.utils import (
     s3_bucket,
     load_sentry,
     require_env,
-    video_trim,
     fetch_from_graphql,
 )
 from module.constants import Supported_Video_Type, supported_video_types
@@ -66,7 +65,7 @@ def process_task(request):
         )
 
         uploaded_video_mime_type = get_file_mime(work_file)
-        log.debug(f"video mime type: {uploaded_video_mime_type}")
+        log.info(f"video mime type: {uploaded_video_mime_type}")
         try:
             video_file_type = next(
                 video_type
