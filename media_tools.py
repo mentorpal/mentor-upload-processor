@@ -75,9 +75,10 @@ def format_secs(secs: Union[float, int, str]) -> str:
     return f"{float(str(secs)):.3f}"
 
 
-def output_args_trim_video(
+def input_output_args_trim_video(
     start_secs: float, end_secs: float, src_file: str
 ) -> Tuple[str, ...]:
+    mime_type = get_file_mime(src_file)
     i_w, i_h = find_video_dims(src_file)
     o_w = int(i_w)
     o_h = int(i_h)
@@ -85,17 +86,21 @@ def output_args_trim_video(
         o_w += 1  # ensure width is divisible by 2
     if o_h % 2 != 0:
         o_h += 1  # ensure height is divisible by 2
-    return (
+    input_args = ("-c:v", "libvpx-vp9") if mime_type == "video/webm" else None  # mp4
+    output_args = (
+        "-y",
+        "-filter:v",
         f"scale={o_w:.0f}:{o_h:.0f}",
         "-ss",
         format_secs(start_secs),
         "-to",
         format_secs(end_secs),
         "-c:v",
-        "libx264",
+        "libx264" if mime_type == "video/mp4" else "libvpx-vp9",
         "-crf",
         "30",
     )
+    return input_args, output_args
 
 
 def webm_ffmpeg_transcode_args(
@@ -300,9 +305,12 @@ def video_trim(
     log.info("%s, %s, %s-%s", input_file, output_file, start_secs, end_secs)
     # couldnt get to output to stdout like here
     # https://aws.amazon.com/blogs/media/processing-user-generated-content-using-aws-lambda-and-ffmpeg/
+    input_args, output_args = input_output_args_trim_video(
+        start_secs, end_secs, input_file
+    )
     ff = ffmpy.FFmpeg(
-        inputs={str(input_file): None},
-        outputs={str(output_file): output_args_trim_video(start_secs, end_secs)},
+        inputs={str(input_file): input_args},
+        outputs={str(output_file): output_args},
         executable=FFMPEG_EXECUTABLE,
     )
     ff.run()
@@ -313,9 +321,12 @@ def existing_video_trim(
     input_file: str, output_file: str, start_secs: float, end_secs: float
 ) -> None:
     log.info("%s, %s, %s-%s", input_file, output_file, start_secs, end_secs)
+    input_args, output_args = input_output_args_trim_video(
+        start_secs, end_secs, input_file
+    )
     ff = ffmpy.FFmpeg(
-        inputs={str(input_file): None},
-        outputs={str(output_file): output_args_trim_video(start_secs, end_secs)},
+        inputs={str(input_file): input_args},
+        outputs={str(output_file): output_args},
         executable=FFMPEG_EXECUTABLE,
     )
     ff.run()
