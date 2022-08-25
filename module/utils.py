@@ -6,10 +6,9 @@
 #
 
 import json
-import ffmpy
 import os
 from os import _Environ, environ
-from typing import Any, Dict, Union, Tuple
+from typing import Any, Dict, Union
 from module.logger import get_logger
 from module.api import fetch_task
 
