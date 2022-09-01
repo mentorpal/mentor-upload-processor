@@ -21,6 +21,8 @@ phases:
       - python3 -m venv /root/venv
       - . /root/venv/bin/activate
       - pip3 install flake8
+      # these are required to run tests
+      - pip3 install -r requirements.txt
       - pip3 install -r test-requirements.txt
 
   build:
