@@ -21,13 +21,14 @@ phases:
       - python3 -m venv /root/venv
       - . /root/venv/bin/activate
       - pip3 install flake8
+      - pip3 install -r test-requirements.txt
 
   build:
     commands:
       - echo Checking formatting
       - flake8 .
-      # TODO 
-      # - echo Running tests
+      - echo Running tests
+      - make test
 
 artifacts:
   files:
