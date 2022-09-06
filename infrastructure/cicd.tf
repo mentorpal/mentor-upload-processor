@@ -13,7 +13,7 @@ module "pipeline" {
   github_branch_dev       = "main"
   github_branch_release   = "release"
 
-  enable_e2e_tests            = false
+  enable_e2e_tests            = true
   enable_status_notifications = true
   build_buildspec             = "cicd/buildspec.yml"
   deploy_dev_buildspec        = "cicd/deployspec-dev.yml"
