@@ -330,7 +330,6 @@ functions:
     environment:
       ANSWER_UPLOAD_STEP_FUNCTION_ARN:
         Fn::GetAtt: [AnswerUploadStepFunction, Arn]
-
     events:
       - http:
           path: /upload/answer
