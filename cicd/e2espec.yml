@@ -4,6 +4,7 @@ env:
   parameter-store:
     API_SECRET: /mentorpal/v2/shared/api_secret
     JWT_SECRET: /mentorpal/v2/shared/jwt_secret
+    S3_STATIC_ARN: /mentorpal/v2/s3_static_arn
   # the rest can safely be hard-coded:
   variables:
     LOG_LEVEL: DEBUG
@@ -13,12 +14,12 @@ env:
     REGION: us-east-1
     GRAPHQL_ENDPOINT: https://api-qa.mentorpal.org/graphql/graphql
     UPLOAD_ENDPOINT: https://api-qa.mentorpal.org/upload
-    # STATIC_URL_BASE: https://static-v2.mentorpal.org/
-    # JOBS_TABLE_NAME: upload-jobs-qa
-    # FFMPEG_EXECUTABLE: /opt/ffmpeg/ffmpeg
-    # TRANSCRIBE_INPUT_BUCKET: 'mentorpal-upload-sm-transcribe-input-qa'
-    # TRANSCRIBE_OUTPUT_BUCKET: 'mentorpal-upload-sm-transcribe-output-qa'
-    # SIGNED_UPLOAD_BUCKET: 'mentorpal-upload-sm-signed-upload-qa'
+    STATIC_URL_BASE: https://static-v2.mentorpal.org/
+    JOBS_TABLE_NAME: upload-jobs-qa
+    FFMPEG_EXECUTABLE: /opt/ffmpeg/ffmpeg
+    TRANSCRIBE_INPUT_BUCKET: 'mentorpal-upload-sm-transcribe-input-qa'
+    TRANSCRIBE_OUTPUT_BUCKET: 'mentorpal-upload-sm-transcribe-output-qa'
+    SIGNED_UPLOAD_BUCKET: 'mentorpal-upload-sm-signed-upload-qa'
 
 phases:
   install:
