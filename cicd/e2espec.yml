@@ -29,6 +29,11 @@ phases:
     commands:
       - n 16 # workaround https://github.com/aws/aws-codebuild-docker-images/issues/490
       - pyenv global $PYTHON_38_VERSION
+      - python3 -m venv /root/venv
+      - . /root/venv/bin/activate
+      # these are required to run tests
+      - pip3 install -r requirements.txt
+      - pip3 install -r test-requirements.txt
 
   build:
     commands:
