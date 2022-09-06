@@ -4,11 +4,11 @@ from module.utils import (
     require_env,
 )
 
-jwt_secret = require_env('JWT_SECRET')
-api_endpoint = require_env('UPLOAD_ENDPOINT')
+jwt_secret = require_env("JWT_SECRET")
+api_endpoint = require_env("UPLOAD_ENDPOINT")
 token = {
-    "id": "6109d2a86e6fa01e5bf3219f", 
-    "role": "ADMIN", 
+    "id": "6109d2a86e6fa01e5bf3219f",
+    "role": "ADMIN",
     "mentorIds": ["not required"],
 }
 encoded = jwt.encode(token, jwt_secret, algorithm="HS256")
