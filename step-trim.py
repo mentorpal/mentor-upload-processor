@@ -8,15 +8,15 @@ import json
 import boto3
 import tempfile
 import os
+from media_tools import get_file_mime, video_trim
 
 from module.utils import (
     s3_bucket,
     load_sentry,
     require_env,
-    video_trim,
     fetch_from_graphql,
 )
-
+from module.constants import Supported_Video_Type, supported_video_types
 from module.api import (
     UpdateTaskStatusRequest,
     upload_task_status_update,
@@ -32,9 +32,11 @@ sns = boto3.client("sns", region_name=aws_region)
 upload_bucket = require_env("SIGNED_UPLOAD_BUCKET")
 
 
-def get_original_video_url(mentor: str, question: str) -> str:
+def get_original_video_url(
+    mentor: str, question: str, video_file_type: Supported_Video_Type
+) -> str:
     base_url = os.environ.get("STATIC_URL_BASE", "")
-    return f"{base_url}/videos/{mentor}/{question}/original.mp4"
+    return f"{base_url}/videos/{mentor}/{question}/original.{video_file_type.extension}"
 
 
 def process_task(request):
@@ -50,7 +52,7 @@ def process_task(request):
         return
 
     with tempfile.TemporaryDirectory() as work_dir:
-        work_file = os.path.join(work_dir, "original.mp4")
+        work_file = os.path.join(work_dir, "original_video")  # don't assume file type
         s3_client.download_file(s3_bucket, request["video"], work_file)
         s3_path = os.path.dirname(request["video"])
         log.info("%s downloaded to %s", request["video"], work_dir)
@@ -62,8 +64,19 @@ def process_task(request):
             )
         )
 
+        uploaded_video_mime_type = get_file_mime(work_file)
+        log.info(f"video mime type: {uploaded_video_mime_type}")
+        try:
+            video_file_type = next(
+                video_type
+                for video_type in supported_video_types
+                if video_type.mime == uploaded_video_mime_type
+            )
+        except Exception:
+            raise Exception(f"Unsupported video mime type: {uploaded_video_mime_type}")
+
         log.info("trimming file %s", work_file)
-        trim_file = f"{work_file}-trim.mp4"
+        trim_file = f"{work_file}-trim.{video_file_type.extension}"
         video_trim(
             work_file,
             trim_file,
@@ -75,8 +88,8 @@ def process_task(request):
         s3_client.upload_file(
             trim_file,
             s3_bucket,
-            f"{s3_path}/original.mp4",
-            ExtraArgs={"ContentType": "video/mp4"},
+            f"{s3_path}/original.{video_file_type.extension}",
+            ExtraArgs={"ContentType": video_file_type.mime},
         )
         log.info("trimmed video uploaded")
 

@@ -56,9 +56,24 @@ and there're alarms that monitor DLQs and send message to an alerting SNS topic 
 
 # Troubleshooting
 
+## Failed upload jobs
+
 To retry processing after fixing a bug, go to 
 (AWS Step Functions console)[https://us-east-1.console.aws.amazon.com/states/home]
 pick and restart the failed execution. This requires an existing task status in graphql!
+
+## Deploy fails when changing transcribe job lambdas
+
+Got this deploy error when switching to Step Functions:
+
+```
+  An error occurred: StepUnderscoretranscribeUnderscorecollectCustomS31 - Received response status [FAILED] from custom resource. Message returned: Configuration is ambiguously defined. Cannot have overlapping suffixes in two rules if the prefixes are overlapping for the same event type. See details in CloudWatch Log: 2022/07/29/[$LATEST]adcecc9d361b475980af6ed5968358c1 (RequestId: 5340e709-d968-4dd0-86bd-e5719130811f).
+```
+
+Seems like a CloudFormation bug - it doesn't remove previous lambda's transcribe output bucket event notifications,
+so then it fails to create the same for a new lambda. The solution was to remove event notifications manually and re-deploy.
+
+# 
 
 # Running locally
 

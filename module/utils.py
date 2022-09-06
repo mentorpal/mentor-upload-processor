@@ -6,10 +6,9 @@
 #
 
 import json
-import ffmpy
 import os
 from os import _Environ, environ
-from typing import Any, Dict, Union, Tuple
+from typing import Any, Dict, Union
 from module.logger import get_logger
 from module.api import fetch_task
 
@@ -29,6 +28,13 @@ s3_bucket = require_env("S3_STATIC_ARN").split(":")[-1]
 log.info("using s3 bucket %s", s3_bucket)
 
 aws_region = require_env("REGION")
+
+
+# s3_key format: */*/*.extension
+def get_file_extension_from_s3_key(s3_key: str) -> str:
+    video_file_name = s3_key.split("/")[-1]
+    video_file_extension = video_file_name.split(".")[-1]
+    return video_file_extension
 
 
 def load_sentry():
@@ -102,34 +108,6 @@ def props_to_bool(
 
 def format_secs(secs: Union[float, int, str]) -> str:
     return f"{float(str(secs)):.3f}"
-
-
-def output_args_trim_video(start_secs: float, end_secs: float) -> Tuple[str, ...]:
-    return (
-        "-ss",
-        format_secs(start_secs),
-        "-to",
-        format_secs(end_secs),
-        "-c:v",
-        "libx264",
-        "-crf",
-        "30",
-    )
-
-
-def video_trim(
-    input_file: str, output_file: str, start_secs: float, end_secs: float
-) -> None:
-    log.info("%s, %s, %s-%s", input_file, output_file, start_secs, end_secs)
-    # couldnt get to output to stdout like here
-    # https://aws.amazon.com/blogs/media/processing-user-generated-content-using-aws-lambda-and-ffmpeg/
-    ff = ffmpy.FFmpeg(
-        inputs={str(input_file): None},
-        outputs={str(output_file): output_args_trim_video(start_secs, end_secs)},
-        executable=FFMPEG_EXECUTABLE,
-    )
-    ff.run()
-    log.debug(ff)
 
 
 def fetch_from_graphql(mentor, question, task_name):

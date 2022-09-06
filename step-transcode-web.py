@@ -9,7 +9,9 @@ import boto3
 import tempfile
 import os
 import logger
-from media_tools import video_encode_for_web
+
+from module.constants import Supported_Video_Type
+from media_tools import get_video_file_type, video_encode_for_web
 from module.api import (
     UpdateTaskStatusRequest,
     AnswerUpdateRequest,
@@ -27,18 +29,19 @@ log = logger.get_logger("answer-transcode-web-handler")
 s3 = boto3.client("s3")
 
 
-def transcode_web(video_file, s3_path):
+def transcode_web(video_file, video_file_type: Supported_Video_Type, s3_path):
     work_dir = os.path.dirname(video_file)
-    web_mp4 = os.path.join(work_dir, "web.mp4")
+    target_file = f"web.{video_file_type.extension}"
+    target_file_path = os.path.join(work_dir, target_file)
 
-    video_encode_for_web(video_file, web_mp4)
+    video_encode_for_web(video_file, target_file_path, video_file_type.mime)
 
-    log.info("uploading %s to %s/%s", web_mp4, s3_bucket, s3_path)
+    log.info("uploading %s to %s/%s", target_file_path, s3_bucket, s3_path)
     s3.upload_file(
-        web_mp4,
+        target_file_path,
         s3_bucket,
-        f"{s3_path}/web.mp4",
-        ExtraArgs={"ContentType": "video/mp4"},
+        f"{s3_path}/{target_file}",
+        ExtraArgs={"ContentType": video_file_type.mime},
     )
 
 
@@ -56,8 +59,9 @@ def process_task(request):
         return
 
     with tempfile.TemporaryDirectory() as work_dir:
-        work_file = os.path.join(work_dir, "original.mp4")
+        work_file = os.path.join(work_dir, "original_video")
         s3.download_file(s3_bucket, request["video"], work_file)
+        video_file_type = get_video_file_type(work_file)
         s3_path = os.path.dirname(request["video"])
         log.info("%s downloaded to %s", request["video"], work_dir)
         upload_task_status_update(
@@ -67,11 +71,12 @@ def process_task(request):
                 transcode_web_task={"status": "IN_PROGRESS"},
             )
         )
-        transcode_web(work_file, s3_path)
+        transcode_web(work_file, video_file_type, s3_path)
+
         web_media = {
             "type": "video",
             "tag": "web",
-            "url": f"{s3_path}/web.mp4",
+            "url": f"{s3_path}/web.{video_file_type.extension}",
         }
 
         upload_answer_and_task_status_update(

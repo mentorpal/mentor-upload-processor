@@ -17,4 +17,10 @@ license: LICENSE_HEADER
 
 .PHONY: license-deploy
 license-deploy: node_modules/license-check-and-add LICENSE LICENSE_HEADER
-	LICENSE_CONFIG=${LICENSE_CONFIG} npm run license:deploy
+	LICENSE_CONFIG=${LICENSE_CONFIG} npm run license:deployPHONY: test
+
+.PHONY: test
+test:
+# envvars required:
+	S3_STATIC_ARN=arn:aws:s3:::bucket-name JWT_SECRET=secret REGION=us-east-1 \
+	 python -m py.test -vv

@@ -9,8 +9,7 @@
 service: mentorpal-upload-sm
 
 # pin to only deploy with a specific Serverless version
-frameworkVersion: '2'
-variablesResolutionMode: 20210326
+frameworkVersion: '3'
 
 plugins:
   - serverless-deployment-bucket
@@ -95,7 +94,6 @@ provider:
     PROJECT: ${self:service}-${self:provider.stage}
     REPOSITORY: mentor-upload
   runtime: python3.8
-  lambdaHashingVersion: 20201221
   architecture: x86_64 # because of the static ffmpeg binaries and python dependencies
   endpointType: regional
   apiGateway:
@@ -214,6 +212,21 @@ functions:
     events:
       - http:
           path: /thumbnail
+          method: post
+          cors: true
+          authorizer:
+            name: authorizer_func
+            resultTtlInSeconds: 300
+            identitySource: method.request.header.Authorization
+            type: token
+
+  http_vbg:
+    handler: vbg_upload.handler
+    memorySize: 1024
+    timeout: 30 # 30sec is max for http requests
+    events:
+      - http:
+          path: /vbg
           method: post
           cors: true
           authorizer:
@@ -449,6 +462,27 @@ resources:
         AlarmActions:
           - ${self:custom.stages.${self:provider.stage}.ALERT_SNS_ARN}
         OKActions:
+          - ${self:custom.stages.${self:provider.stage}.ALERT_SNS_ARN}
+
+    ApiErrors:
+      Type: AWS::CloudWatch::Alarm
+      Condition: CreateCloudWatchAlarm
+      Properties:
+        ActionsEnabled: true
+        AlarmName: 'upload processor API Gateway 5xx errors ${self:provider.stage}'
+        AlarmDescription: 'upload processor API Gateway 5xx errors ${self:provider.stage}'
+        Namespace: AWS/ApiGateway
+        MetricName: 5XXError
+        Statistic: Sum
+        Threshold: 0
+        ComparisonOperator: 'GreaterThanThreshold'
+        EvaluationPeriods: 1
+        Period: 60
+        TreatMissingData: 'notBreaching'
+        Dimensions:
+          - Name: ApiName
+            Value: '${self:provider.stage}-${self:service}'
+        AlarmActions:
           - ${self:custom.stages.${self:provider.stage}.ALERT_SNS_ARN}
 
     Response5xx:
