@@ -1,0 +1,36 @@
+version: 0.2
+
+env:
+  parameter-store:
+    API_SECRET: /mentorpal/v2/shared/api_secret
+    JWT_SECRET: /mentorpal/v2/shared/jwt_secret
+  # the rest can safely be hard-coded:
+  variables:
+    LOG_LEVEL: debug
+    STAGE: qa
+    IS_SENTRY_ENABLED: false
+    PYTHON_ENV: careerfair-qa
+    REGION: us-east-1
+    GRAPHQL_ENDPOINT: https://api-qa.mentorpal.org/graphql/graphql
+    UPLOAD_ENDPOINT: https://api-qa.mentorpal.org/upload
+    # STATIC_URL_BASE: https://static-v2.mentorpal.org/
+    # JOBS_TABLE_NAME: upload-jobs-qa
+    # FFMPEG_EXECUTABLE: /opt/ffmpeg/ffmpeg
+    # TRANSCRIBE_INPUT_BUCKET: 'mentorpal-upload-sm-transcribe-input-qa'
+    # TRANSCRIBE_OUTPUT_BUCKET: 'mentorpal-upload-sm-transcribe-output-qa'
+    # SIGNED_UPLOAD_BUCKET: 'mentorpal-upload-sm-signed-upload-qa'
+
+phases:
+  install:
+    runtime-versions:
+      nodejs: 14
+
+  pre_build:
+    commands:
+      - n 16 # workaround https://github.com/aws/aws-codebuild-docker-images/issues/490
+      - pyenv global $PYTHON_38_VERSION
+
+  build:
+    commands:
+      - echo running integration tests against deployed qa api
+      - make test:integration
