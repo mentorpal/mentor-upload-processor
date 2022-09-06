@@ -36,7 +36,7 @@ custom:
 
   stages:
     dev:
-      LOG_LEVEL: 'trace'
+      LOG_LEVEL: DEBUG
       IS_SENTRY_ENABLED: false
       # v2 is hardcoded, we could use fallback stages instead
       # hack: qa and prod are in different regions so deploy fails because
@@ -52,7 +52,7 @@ custom:
       WEBACL_ARN: ${ssm:/mentorpal/newdev/api_firewall_arn, ''}
     qa:
       S3_STATIC_ARN: ${ssm:/mentorpal/v2/s3_static_arn, ''}
-      LOG_LEVEL: debug
+      LOG_LEVEL: DEBUG
       IS_SENTRY_ENABLED: true
       GRAPHQL_ENDPOINT: https://api-qa.mentorpal.org/graphql/graphql
       API_SECRET: ${ssm:/mentorpal/v2/shared/api_secret, ''}
@@ -61,7 +61,7 @@ custom:
       ALERT_SNS_ARN: ${ssm:/mentorpal/v2/shared/sns_alert_topic_arn, ''}
       WEBACL_ARN: ${ssm:/mentorpal/v2/api_firewall_arn, ''}
     prod:
-      LOG_LEVEL: 'info'
+      LOG_LEVEL: INFO
       IS_SENTRY_ENABLED: true
       GRAPHQL_ENDPOINT: https://api.mentorpal.org/graphql/graphql
       S3_STATIC_ARN: ${ssm:/mentorpal/cf/s3_static_arn, ''}

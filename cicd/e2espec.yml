@@ -6,7 +6,7 @@ env:
     JWT_SECRET: /mentorpal/v2/shared/jwt_secret
   # the rest can safely be hard-coded:
   variables:
-    LOG_LEVEL: debug
+    LOG_LEVEL: DEBUG
     STAGE: qa
     IS_SENTRY_ENABLED: false
     PYTHON_ENV: careerfair-qa
