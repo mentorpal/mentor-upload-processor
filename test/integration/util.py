@@ -7,6 +7,7 @@ from module.utils import (
 jwt_secret = require_env("JWT_SECRET")
 api_endpoint = require_env("UPLOAD_ENDPOINT")
 
+
 def get_auth_headers(id="6109d2a86e6fa01e5bf3219f", mentorIds=["not required"]):
     token = {
         "id": id,
