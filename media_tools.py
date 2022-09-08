@@ -248,6 +248,19 @@ def video_encode_for_mobile(
     log.debug(ff)
 
 
+# ffmpeg can transcode from one file type to another simply by extension name
+# i.e. if input is video.webm and target file is video.mp4, it will transcode from webm --> mp4
+def ffmpeg_barebones_transcode(src_file: str, tgt_file: str):
+    log.info("starting webm to mp4 transcode")
+    ff = ffmpy.FFmpeg(
+        inputs={str(src_file): None},
+        outputs={str(tgt_file): None},
+        executable=FFMPEG_EXECUTABLE,
+    )
+    ff.run()
+    log.debug(ff)
+
+
 def video_encode_for_web(
     src_file: str,
     tgt_file: str,

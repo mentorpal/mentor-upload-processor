@@ -11,7 +11,11 @@ import os
 import logger
 
 from module.constants import Supported_Video_Type, MP4
-from media_tools import get_video_file_type, video_encode_for_web
+from media_tools import (
+    get_video_file_type,
+    video_encode_for_web,
+    ffmpeg_barebones_transcode,
+)
 from module.api import (
     UpdateTaskStatusRequest,
     AnswerUpdateRequest,
@@ -43,6 +47,19 @@ def transcode_web(video_file, video_file_type: Supported_Video_Type, s3_path):
         f"{s3_path}/{target_file}",
         ExtraArgs={"ContentType": video_file_type.mime},
     )
+
+    # webm are also transcoded to mp4 for browsers that do not support webm
+    if video_file_type.mime == "video/webm":
+        mp4_target_file = "web.mp4"
+        mp4_target_file_path = os.path.join(work_dir, mp4_target_file)
+        ffmpeg_barebones_transcode(target_file_path, mp4_target_file_path)
+        log.info("uploading %s to %s/%s", mp4_target_file_path, s3_bucket, s3_path)
+        s3.upload_file(
+            mp4_target_file_path,
+            s3_bucket,
+            f"{s3_path}/{mp4_target_file}",
+            ExtraArgs={"ContentType": "video/mp4"},
+        )
 
 
 def process_task(request):
@@ -76,12 +93,16 @@ def process_task(request):
                 transcode_web_task={"status": "IN_PROGRESS"},
             )
         )
+
         transcode_web(work_file, video_file_type, s3_path)
 
         web_media = {
             "type": "video",
             "tag": "web",
-            "url": f"{s3_path}/web.{video_file_type.extension}",
+            "url": f"{s3_path}/web.mp4",  # mp4's are always created
+            "transparentVideoUrl": f"{s3_path}/web.webm"
+            if video_file_type.mime == "video/webm"
+            else "",  # webms are also created if the mime type is webm
         }
 
         upload_answer_and_task_status_update(

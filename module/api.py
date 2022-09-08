@@ -30,6 +30,7 @@ class Media:
     tag: str
     url: str
     needsTransfer: bool  # noqa: N815
+    transparentVideoUrl: str = None  # noqa: N815
 
 
 @dataclass
