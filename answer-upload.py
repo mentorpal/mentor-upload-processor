@@ -11,7 +11,7 @@ import base64
 import tempfile
 import os
 
-from module.constants import Supported_Video_Type, supported_video_types
+from module.constants import Supported_Video_Type, supported_video_types, MP4
 from media_tools import assert_video_duration, get_video_file_type
 from module.utils import (
     create_json_response,
@@ -182,7 +182,12 @@ def handler(event, context):
             work_dir, "original_video"
         )  # don't assume video file type
         s3_client.download_file(upload_bucket, video_key, file_path)
-        video_file_type = get_video_file_type(file_path)
+        try:
+            video_file_type = get_video_file_type(file_path)
+        except Exception as e:
+            log.debug(e)
+            log.debug("unknown file mime type, will attempt to transcode to mp4")
+            video_file_type = MP4
 
         if not assert_video_duration(file_path, 1000):
             data = {

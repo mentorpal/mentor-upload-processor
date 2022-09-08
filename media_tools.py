@@ -187,7 +187,7 @@ def get_args_video_encode_for_mobile(
         crop_w = i_w - (i_h - crop_h)
     else:
         crop_h = crop_h - crop_h
-    if video_mime_type == "video/mp4" or video_mime_type == "video/x-matroska":
+    if video_mime_type == "video/mp4":
         return mp4_ffmpeg_transcode_args(crop_w, crop_h, o_w, o_h)
     elif video_mime_type == "video/webm":
         return webm_ffmpeg_transcode_args(crop_w, crop_h, o_w, o_h)
@@ -218,7 +218,7 @@ def get_args_video_encode_for_web(
         o_w += 1  # ensure width is divisible by 2
     if o_h % 2 != 0:
         o_h += 1  # ensure height is divisible by 2
-    if video_mime_type == "video/mp4" or video_mime_type == "video/x-matroska":
+    if video_mime_type == "video/mp4":
         return mp4_ffmpeg_transcode_args(crop_w, crop_h, o_w, o_h)
     elif video_mime_type == "video/webm":
         return webm_ffmpeg_transcode_args(crop_w, crop_h, o_w, o_h)
