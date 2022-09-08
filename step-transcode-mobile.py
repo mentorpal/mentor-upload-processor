@@ -102,8 +102,8 @@ def process_task(request):
             "type": "video",
             "tag": "mobile",
             "url": f"{s3_path}/mobile.{video_file_type.extension}",
-            "transparentVideoUrl": f"{s3_path}/mobile.webm"
-            if video_file_type.mime == "video/webm"
+            "transparentVideoUrl": f"{s3_path}/mobile.MP4"
+            if video_file_type.mime == "video/mp4"
             else "",  # webms are also created if the mime type is webm
         }
 
