@@ -10,7 +10,7 @@ import tempfile
 import os
 import logger
 
-from module.constants import Supported_Video_Type
+from module.constants import Supported_Video_Type, MP4
 from media_tools import get_video_file_type, video_encode_for_web
 from module.api import (
     UpdateTaskStatusRequest,
@@ -61,7 +61,12 @@ def process_task(request):
     with tempfile.TemporaryDirectory() as work_dir:
         work_file = os.path.join(work_dir, "original_video")
         s3.download_file(s3_bucket, request["video"], work_file)
-        video_file_type = get_video_file_type(work_file)
+        try:
+            video_file_type = get_video_file_type(work_file)
+        except Exception as e:
+            log.debug(e)
+            log.debug("unknown file mime type, will attempt to transcode to mp4")
+            video_file_type = MP4
         s3_path = os.path.dirname(request["video"])
         log.info("%s downloaded to %s", request["video"], work_dir)
         upload_task_status_update(
