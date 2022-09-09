@@ -1,18 +1,20 @@
 import jwt
-
-from module.utils import (
-    require_env,
-)
+import datetime
+from module.utils import require_env
 
 jwt_secret = require_env("JWT_SECRET")
 api_endpoint = require_env("UPLOAD_ENDPOINT")
 
 
-def get_auth_headers(id="6109d2a86e6fa01e5bf3219f", mentorIds=["not required"]):
+def get_auth_headers(id="6109d2a86e6fa01e5bf3219f", mentorIds=["6109d2a86e6fa01e5bf3219f"]):
+    exp = datetime.datetime.now(tz=datetime.timezone.utc) + datetime.timedelta(hours=1)
     token = {
         "id": id,
         "role": "ADMIN",
         "mentorIds": mentorIds,
+        "iat": datetime.datetime.now(tz=datetime.timezone.utc),
+        "exp": exp,
+        "expirationDate": exp.isoformat()
     }
     encoded = jwt.encode(token, jwt_secret, algorithm="HS256")
 

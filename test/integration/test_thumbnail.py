@@ -6,9 +6,12 @@ from io import BytesIO
 from os import urandom  # 3.9 introduced random.randbytes
 from urllib3 import encode_multipart_formdata
 
+mentor_jwt_id = "6196af5e068d43dc686194ed"  # milan, todo: create a test mentor
+test_mentor = "6196af5e068d43dc686194f8"  # milan, todo: create a test mentor
+headers = get_auth_headers(mentor_jwt_id, [test_mentor])
+
 
 def test_successful_upload():
-    test_mentor = "6196af5e068d43dc686194f8"  # milan, todo: create a test mentor
     # generate a random 100x100px png:
     tobytes = urandom(100) + b" \xd2\xb7\xe1"
     img = PILImage.frombytes("L", (10, 10), tobytes)
@@ -19,7 +22,6 @@ def test_successful_upload():
         "thumbnail": ("random.png", img_data.getvalue(), "image/png"),
     }
     body, content_type = encode_multipart_formdata(fields)
-    headers = get_auth_headers(test_mentor)
     headers["Content-Type"] = content_type
 
     response = requests.post(
@@ -31,3 +33,4 @@ def test_successful_upload():
     print(response.status_code, response.text)
     assert response.status_code == 200
     assert "thumbnails/6196af5e068d43dc686194f8" in response.text
+    # TODO perhaps check graphql?
