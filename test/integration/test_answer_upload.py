@@ -7,7 +7,7 @@ import time
 
 mentor_jwt_id = "6196af5e068d43dc686194ed"  # milan, todo: create a test mentor
 test_mentor = "6196af5e068d43dc686194f8"  # milan, todo: create a test mentor
-test_question= "61499cfba8bc83d04ac1675d" # 6149a443a8bc83b2eac16f46
+test_question = "61499cfba8bc83d04ac1675d"  # 6149a443a8bc83b2eac16f46
 headers = get_auth_headers(mentor_jwt_id, [test_mentor])
 
 
@@ -20,7 +20,7 @@ def remove_task_status(mentorId, questionId, headers):
             uploadTaskDelete(questionId: $questionId, mentorId: $mentorId)
           }
         }
-        """
+        """,
     }
     response = requests.post(
         "https://api-qa.mentorpal.org/graphql/graphql",  # TODO
@@ -29,7 +29,11 @@ def remove_task_status(mentorId, questionId, headers):
     )
     # if this query fails, we might have to manually clean up the task status
     if response.status_code != 200 or "errors" in response.text:
-        print("failed to remove task status, might have to do it manually", response.status_code, response.text)
+        print(
+            "failed to remove task status, might have to do it manually",
+            response.status_code,
+            response.text,
+        )
         pytest.fail(reason="failed to remove task status, might have to do it manually")
 
 
