@@ -3,6 +3,8 @@
 #
 # The full terms of this copyright and license should always be found in the root directory of this software deliverable as "license.txt" and if these terms are not found with this software, please contact the USC Stevens Center for the full license.
 import logging
+import queue
+from threading import Thread
 import urllib.request
 from os import remove
 
@@ -156,36 +158,55 @@ class ProcessTransferMentor(TypedDict):
     mentorExportJson: MentorExportJson
     replacedMentorDataChanges: List[ReplacedMentorDataChanges]
 
+def thread_video_uploads(answer_list, mentor, s3_client, s3_bucket, no_workers):
+    class Worker(Thread):
+        def __init__(self, request_queue):
+            Thread.__init__(self)
+            self.queue = request_queue
+            self.results = []
 
-def process_transfer_mentor(s3_client, s3_bucket, req: ProcessTransferMentor):
-    mentor = req.get("mentor")
-    mentor_export_json = req.get("mentorExportJson")
-    replaced_mentor_data_changes = req.get("replacedMentorDataChanges")
-    graphql_update = {"status": "IN_PROGRESS"}
-    mentor_import_res = import_mentor(
-        mentor, mentor_export_json, replaced_mentor_data_changes, graphql_update
-    )
+        def run(self):
+            while True:
+                answer = self.queue.get()
+                if answer == "":
+                    break
 
-    answers = mentor_import_res["answers"]
-    answers_with_media_transfers = list(
-        filter(
-            lambda a: len(a["media"] or []) > 0,
-            answers,
-        )
-    )
-    answer_media_migrations = [
-        {"question": q["_id"], "status": "QUEUED"}
-        for q in list(map(lambda a: a["question"], answers_with_media_transfers))
-    ]
-    s3_video_migration = {
-        "status": "IN_PROGRESS",
-        "answerMediaMigrations": answer_media_migrations,
-    }
-    import_task_update_gql(
-        ImportTaskUpdateGQLRequest(mentor=mentor, s3_video_migration=s3_video_migration)
-    )
-    answer_failure = None
-    for answer in answers_with_media_transfers:
+                transfer_mentor_videos_in_parellel(answer, mentor, s3_client, s3_bucket)
+                
+                self.results.append(
+                    {
+                        "finished_question": answer["question"]["_id"]
+                    }
+                )
+                self.queue.task_done()
+
+    # Create queue and add req params
+    q = queue.Queue()
+    for r in answer_list:
+        q.put(r)
+
+    # Workers keep working till they receive an empty string
+    for _ in range(no_workers):
+        q.put("")
+
+    # Create workers and add to the queue
+    workers = []
+    for _ in range(no_workers):
+        worker = Worker(q)
+        worker.start()
+        workers.append(worker)
+    # Join workers to wait till they finished
+    for worker in workers:
+        worker.join()
+
+    # Combine results from all workers
+    r = []
+    for worker in workers:
+        r.extend(worker.results)
+
+    return True
+
+def transfer_mentor_videos_in_parellel(answer, mentor, s3_client, s3_bucket):
         try:
             question = answer["question"]["_id"]
             for m in answer["media"]:
@@ -263,8 +284,39 @@ def process_transfer_mentor(s3_client, s3_bucket, req: ProcessTransferMentor):
                     },
                 )
             )
-    if answer_failure:
-        raise Exception(f"Failed to transfer {mentor}")
+        finally:
+            logging.error(f"another video DONE for {mentor}")
+
+def process_transfer_mentor(s3_client, s3_bucket, req: ProcessTransferMentor):
+    mentor = req.get("mentor")
+    mentor_export_json = req.get("mentorExportJson")
+    replaced_mentor_data_changes = req.get("replacedMentorDataChanges")
+    graphql_update = {"status": "IN_PROGRESS"}
+    mentor_import_res = import_mentor(
+        mentor, mentor_export_json, replaced_mentor_data_changes, graphql_update
+    )
+
+    answers = mentor_import_res["answers"]
+    answers_with_media_transfers = list(
+        filter(
+            lambda a: len(a["media"] or []) > 0,
+            answers,
+        )
+    )
+    answer_media_migrations = [
+        {"question": q["_id"], "status": "QUEUED"}
+        for q in list(map(lambda a: a["question"], answers_with_media_transfers))
+    ]
+    s3_video_migration = {
+        "status": "IN_PROGRESS",
+        "answerMediaMigrations": answer_media_migrations,
+    }
+    import_task_update_gql(
+        ImportTaskUpdateGQLRequest(mentor=mentor, s3_video_migration=s3_video_migration)
+    )
+
+    thread_video_uploads(answers_with_media_transfers, mentor, s3_client, s3_bucket, 12)
+
 
 
 def import_mentor(
