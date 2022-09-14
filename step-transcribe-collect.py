@@ -9,7 +9,7 @@ import boto3
 import botocore
 import tempfile
 import os
-import logger
+from module.logger import get_logger
 from module.api import (
     AnswerUpdateRequest,
     UpdateTaskStatusRequest,
@@ -25,7 +25,7 @@ from module.utils import (
 
 load_sentry()
 s3 = boto3.client("s3")
-log = logger.get_logger("answer-transcribe-handler")
+log = get_logger("answer-transcribe-handler")
 aws_region = require_env("REGION")
 sfn_client = boto3.client("stepfunctions", region_name=aws_region)
 
@@ -122,7 +122,7 @@ def handler(event, context):
     execution status back to the Step Function, otherwise the Step Function
     won't be able to continue execution.
     """
-    log.info(json.dumps(event))
+    log.info(event)
     for record in event["Records"]:
         key = record["s3"]["object"]["key"]
         s3_path = os.path.dirname(key)

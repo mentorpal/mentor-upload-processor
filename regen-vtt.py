@@ -15,7 +15,7 @@ log = get_logger("regen-vtt")
 
 
 def handler(event, context):
-    log.debug(json.dumps(event))
+    log.info(event)
     if "body" not in event:
         data = {
             "error": "Bad Request",

@@ -8,7 +8,7 @@ import json
 import boto3
 import tempfile
 import os
-import logger
+from module.logger import get_logger
 from media_tools import (
     get_video_file_type,
     video_encode_for_mobile,
@@ -28,7 +28,7 @@ from module.utils import (
 from module.constants import Supported_Video_Type, MP4
 
 load_sentry()
-log = logger.get_logger("answer-transcode-mobile-handler")
+log = get_logger("answer-transcode-mobile-handler")
 s3 = boto3.client("s3")
 
 
@@ -123,7 +123,7 @@ def process_task(request):
 
 
 def handler(event, context):
-    log.info(json.dumps(event))
+    log.info(event)
     request = event["request"]
 
     task = request["transcodeMobileTask"] if "transcodeMobileTask" in request else None

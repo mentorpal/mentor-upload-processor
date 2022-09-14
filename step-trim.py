@@ -4,7 +4,6 @@
 #
 # The full terms of this copyright and license should always be found in the root directory of this software deliverable as "license.txt" and if these terms are not found with this software, please contact the USC Stevens Center for the full license.
 #
-import json
 import boto3
 import tempfile
 import os
@@ -103,7 +102,7 @@ def process_task(request):
 
 
 def handler(event, context):
-    log.info(json.dumps(event))
+    log.info(event)
     request = event["request"]
 
     task = request["trimUploadTask"] if "trimUploadTask" in request else None
