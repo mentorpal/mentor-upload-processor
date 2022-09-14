@@ -4,11 +4,11 @@
 #
 # The full terms of this copyright and license should always be found in the root directory of this software deliverable as "license.txt" and if these terms are not found with this software, please contact the USC Stevens Center for the full license.
 #
-import json
+
 import boto3
 import tempfile
 import os
-import logger
+from module.logger import get_logger
 
 from module.constants import Supported_Video_Type, MP4
 from media_tools import (
@@ -29,7 +29,7 @@ from module.utils import (
 )
 
 load_sentry()
-log = logger.get_logger("answer-transcode-web-handler")
+log = get_logger("answer-transcode-web-handler")
 s3 = boto3.client("s3")
 
 
@@ -121,7 +121,7 @@ def process_task(request):
 
 
 def handler(event, context):
-    log.info(json.dumps(event))
+    log.info(event)
     request = event["request"]
 
     task = request["transcodeWebTask"] if "transcodeWebTask" in request else None

@@ -4,8 +4,8 @@
 #
 # The full terms of this copyright and license should always be found in the root directory of this software deliverable as "license.txt" and if these terms are not found with this software, please contact the USC Stevens Center for the full license.
 #
-import json
-import logger
+
+from module.logger import get_logger
 from module.api import (
     UpdateTaskStatusRequest,
     upload_task_status_update,
@@ -13,11 +13,11 @@ from module.api import (
 from module.utils import load_sentry
 
 load_sentry()
-log = logger.get_logger("answer-transcribe-start-handler")
+log = get_logger("answer-transcribe-start-handler")
 
 
 def handler(event, context):
-    log.info(json.dumps(event))
+    log.info(event)
     request = event["request"]
     # it doesnt matter which task failed, a new step fn execution will run them all
     upload_task_status_update(

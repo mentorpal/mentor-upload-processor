@@ -19,7 +19,7 @@ job_table = dynamodb.Table(JOBS_TABLE_NAME)
 
 
 def handler(event, context):
-    log.debug(json.dumps(event))
+    log.info(event)
     status_id = event["pathParameters"]["id"]
     token = json.loads(event["requestContext"]["authorizer"]["token"])
 

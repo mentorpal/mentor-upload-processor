@@ -4,11 +4,10 @@
 #
 # The full terms of this copyright and license should always be found in the root directory of this software deliverable as "license.txt" and if these terms are not found with this software, please contact the USC Stevens Center for the full license.
 #
-import json
 import boto3
 import tempfile
 import os
-import logger
+from module.logger import get_logger
 import uuid
 from media_tools import video_to_audio, has_audio
 from module.utils import (
@@ -24,7 +23,7 @@ from module.api import (
 )
 
 load_sentry()
-log = logger.get_logger("answer-transcribe-start-handler")
+log = get_logger("answer-transcribe-start-handler")
 
 aws_region = require_env("REGION")
 input_bucket = require_env("TRANSCRIBE_INPUT_BUCKET")
@@ -133,8 +132,7 @@ def handler(event, context):
     This lambda is configured to receive a task token from the Step Function,
     which pauses the execution of the workflow until the token is returned by the next lambda.
     """
-    log.info(json.dumps(event))
-
+    log.info(event)
     request = event["request"]
 
     task = request["transcribeTask"] if "transcribeTask" in request else None
