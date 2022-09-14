@@ -726,6 +726,35 @@ class UpdateAnswersGQLRequest:
 
 
 def update_answers_gql_query(req: UpdateAnswersGQLRequest) -> GQLQueryBody:
+    answers = list(
+        map(
+            lambda answer: {
+                **(
+                    {"mobileMedia": answer["mobile_media"]}
+                    if "mobile_media" in answer
+                    else {}
+                ),
+                **({"webMedia": answer["web_media"]} if "web_media" in answer else {}),
+                **({"vttMedia": answer["vtt_media"]} if "vtt_media" in answer else {}),
+                **(
+                    {"hasEditedTranscript": answer["has_edited_transcript"]}
+                    if "has_edited_transcript" in answer
+                    else {}
+                ),
+                **(
+                    {"transcript": answer["transcript"]}
+                    if "transcript" in answer
+                    else {}
+                ),
+                **(
+                    {"questionId": answer["questionId"]}
+                    if "questionId" in answer
+                    else {}
+                ),
+            },
+            req.answers,
+        )
+    )
     return {
         "query": """mutation UpdateAnswers($mentorId: ID!, $answers: [UploadAnswersType]) {
             api {
@@ -734,7 +763,7 @@ def update_answers_gql_query(req: UpdateAnswersGQLRequest) -> GQLQueryBody:
         }""",
         "variables": {
             "mentorId": req.mentorId,
-            "answers": req.answers,
+            "answers": answers,
         },
     }
 
@@ -743,6 +772,7 @@ def update_answers_gql(req: UpdateAnswersGQLRequest) -> None:
     headers = {"mentor-graphql-req": "true", "Authorization": f"bearer {get_api_key()}"}
     body = update_answers_gql_query(req)
     res = requests.post(get_graphql_endpoint(), json=body, headers=headers)
+    log.error(res.json())
     res.raise_for_status()
     tdjson = res.json()
     if "errors" in tdjson:
