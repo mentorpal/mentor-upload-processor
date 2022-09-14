@@ -66,7 +66,7 @@ def handler(event, context):
     compressed_body = gzip.compress(bytes(body, "utf-8"))
 
     graphql_update = {"status": "QUEUED"}
-    s3_video_migration = {"status": "QUEUED", "answerMediaMigrations": []}
+    s3_video_migration = {"status": "QUEUED"}
     import_task_create_gql(
         ImportTaskGQLRequest(mentor, graphql_update, s3_video_migration)
     )
