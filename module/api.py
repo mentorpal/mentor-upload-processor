@@ -256,6 +256,7 @@ class ProcessTransferMentor(TypedDict):
 @dataclass
 class ImportTaskUpdateGQLRequest:
     mentor: str
+    migration_errors: List[str]
     graphql_update: ImportTaskCreateGraphQLUpdate = None
     s3_video_migration: ImportTaskCreateS3VideoMigration = None
 
@@ -540,10 +541,12 @@ def import_task_update_gql_query(req: ImportTaskUpdateGQLRequest) -> GQLQueryBod
         variables["graphQLUpdate"] = req.graphql_update
     if req.s3_video_migration:
         variables["s3VideoMigrateUpdate"] = req.s3_video_migration
+    if req.migration_errors:
+        variables["migrationErrors"] = req.migration_errors
     return {
-        "query": """mutation ImportTaskUpdate($mentor: ID!, $graphQLUpdate: GraphQLUpdateInputType, $s3VideoMigrateUpdate: S3VideoMigrationInputType){
+        "query": """mutation ImportTaskUpdate($mentor: ID!, $graphQLUpdate: GraphQLUpdateInputType, $s3VideoMigrateUpdate: S3VideoMigrationInputType, $migrationErrors: [String]){
   api{
-      importTaskUpdate(mentor: $mentor, graphQLUpdate: $graphQLUpdate, s3VideoMigrateUpdate: $s3VideoMigrateUpdate)
+      importTaskUpdate(mentor: $mentor, graphQLUpdate: $graphQLUpdate, s3VideoMigrateUpdate: $s3VideoMigrateUpdate, migrationErrors: $migrationErrors)
   }
 }""",
         "variables": variables,
