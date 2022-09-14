@@ -9,8 +9,7 @@
 service: mentorpal-upload-sm
 
 # pin to only deploy with a specific Serverless version
-frameworkVersion: '2'
-variablesResolutionMode: 20210326
+frameworkVersion: '3'
 
 plugins:
   - serverless-deployment-bucket
@@ -37,7 +36,7 @@ custom:
 
   stages:
     dev:
-      LOG_LEVEL: 'trace'
+      LOG_LEVEL: DEBUG
       IS_SENTRY_ENABLED: false
       # v2 is hardcoded, we could use fallback stages instead
       # hack: qa and prod are in different regions so deploy fails because
@@ -53,7 +52,7 @@ custom:
       WEBACL_ARN: ${ssm:/mentorpal/newdev/api_firewall_arn, ''}
     qa:
       S3_STATIC_ARN: ${ssm:/mentorpal/v2/s3_static_arn, ''}
-      LOG_LEVEL: debug
+      LOG_LEVEL: DEBUG
       IS_SENTRY_ENABLED: true
       GRAPHQL_ENDPOINT: https://api-qa.mentorpal.org/graphql/graphql
       API_SECRET: ${ssm:/mentorpal/v2/shared/api_secret, ''}
@@ -62,7 +61,7 @@ custom:
       ALERT_SNS_ARN: ${ssm:/mentorpal/v2/shared/sns_alert_topic_arn, ''}
       WEBACL_ARN: ${ssm:/mentorpal/v2/api_firewall_arn, ''}
     prod:
-      LOG_LEVEL: 'info'
+      LOG_LEVEL: INFO
       IS_SENTRY_ENABLED: true
       GRAPHQL_ENDPOINT: https://api.mentorpal.org/graphql/graphql
       S3_STATIC_ARN: ${ssm:/mentorpal/cf/s3_static_arn, ''}
@@ -95,7 +94,6 @@ provider:
     PROJECT: ${self:service}-${self:provider.stage}
     REPOSITORY: mentor-upload
   runtime: python3.8
-  lambdaHashingVersion: 20201221
   architecture: x86_64 # because of the static ffmpeg binaries and python dependencies
   endpointType: regional
   apiGateway:
@@ -222,6 +220,21 @@ functions:
             identitySource: method.request.header.Authorization
             type: token
 
+  http_vbg:
+    handler: vbg_upload.handler
+    memorySize: 1024
+    timeout: 30 # 30sec is max for http requests
+    events:
+      - http:
+          path: /vbg
+          method: post
+          cors: true
+          authorizer:
+            name: authorizer_func
+            resultTtlInSeconds: 300
+            identitySource: method.request.header.Authorization
+            type: token
+
   http_transfer_start:
     handler: transfer-start.handler
     memorySize: 512
@@ -317,7 +330,6 @@ functions:
     environment:
       ANSWER_UPLOAD_STEP_FUNCTION_ARN:
         Fn::GetAtt: [AnswerUploadStepFunction, Arn]
-
     events:
       - http:
           path: /upload/answer
@@ -449,6 +461,27 @@ resources:
         AlarmActions:
           - ${self:custom.stages.${self:provider.stage}.ALERT_SNS_ARN}
         OKActions:
+          - ${self:custom.stages.${self:provider.stage}.ALERT_SNS_ARN}
+
+    ApiErrors:
+      Type: AWS::CloudWatch::Alarm
+      Condition: CreateCloudWatchAlarm
+      Properties:
+        ActionsEnabled: true
+        AlarmName: 'upload processor API Gateway 5xx errors ${self:provider.stage}'
+        AlarmDescription: 'upload processor API Gateway 5xx errors ${self:provider.stage}'
+        Namespace: AWS/ApiGateway
+        MetricName: 5XXError
+        Statistic: Sum
+        Threshold: 0
+        ComparisonOperator: 'GreaterThanThreshold'
+        EvaluationPeriods: 1
+        Period: 60
+        TreatMissingData: 'notBreaching'
+        Dimensions:
+          - Name: ApiName
+            Value: '${self:provider.stage}-${self:service}'
+        AlarmActions:
           - ${self:custom.stages.${self:provider.stage}.ALERT_SNS_ARN}
 
     Response5xx:

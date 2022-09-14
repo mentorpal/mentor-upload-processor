@@ -9,7 +9,11 @@ import boto3
 import tempfile
 import os
 import logger
-from media_tools import video_encode_for_mobile
+from media_tools import (
+    get_video_file_type,
+    video_encode_for_mobile,
+    ffmpeg_barebones_transcode,
+)
 from module.api import (
     UpdateTaskStatusRequest,
     AnswerUpdateRequest,
@@ -21,25 +25,40 @@ from module.utils import (
     load_sentry,
     fetch_from_graphql,
 )
+from module.constants import Supported_Video_Type, MP4
 
 load_sentry()
 log = logger.get_logger("answer-transcode-mobile-handler")
 s3 = boto3.client("s3")
 
 
-def transcode_mobile(video_file, s3_path):
+def transcode_mobile(video_file, video_file_type: Supported_Video_Type, s3_path):
     work_dir = os.path.dirname(video_file)
-    mobile_mp4 = os.path.join(work_dir, "mobile.mp4")
+    target_file = f"mobile.{video_file_type.extension}"
+    target_file_path = os.path.join(work_dir, target_file)
 
-    video_encode_for_mobile(video_file, mobile_mp4)
+    video_encode_for_mobile(video_file, target_file_path, video_file_type.mime)
 
-    log.info("uploading %s to %s/%s", mobile_mp4, s3_bucket, s3_path)
+    log.info("uploading %s to %s/%s", target_file_path, s3_bucket, s3_path)
     s3.upload_file(
-        mobile_mp4,
+        target_file_path,
         s3_bucket,
-        f"{s3_path}/mobile.mp4",
-        ExtraArgs={"ContentType": "video/mp4"},
+        f"{s3_path}/{target_file}",
+        ExtraArgs={"ContentType": video_file_type.mime},
     )
+
+    # webm are also transcoded to mp4 for browsers that do not support webm
+    if video_file_type.mime == "video/webm":
+        mp4_target_file = "mobile.mp4"
+        mp4_target_file_path = os.path.join(work_dir, mp4_target_file)
+        ffmpeg_barebones_transcode(target_file_path, mp4_target_file_path)
+        log.info("uploading %s to %s/%s", mp4_target_file_path, s3_bucket, s3_path)
+        s3.upload_file(
+            mp4_target_file_path,
+            s3_bucket,
+            f"{s3_path}/{mp4_target_file}",
+            ExtraArgs={"ContentType": "video/mp4"},
+        )
 
 
 def process_task(request):
@@ -56,8 +75,16 @@ def process_task(request):
         return
 
     with tempfile.TemporaryDirectory() as work_dir:
-        work_file = os.path.join(work_dir, "original.mp4")
+        work_file = os.path.join(work_dir, "original_video")
         s3.download_file(s3_bucket, request["video"], work_file)
+
+        try:
+            video_file_type = get_video_file_type(work_file)
+        except Exception as e:
+            log.debug(e)
+            log.debug("unknown file mime type, will attempt to transcode to mp4")
+            video_file_type = MP4
+
         s3_path = os.path.dirname(request["video"])  # same 'folder' as original file
         log.info("%s downloaded to %s", request["video"], work_dir)
 
@@ -69,12 +96,15 @@ def process_task(request):
             )
         )
 
-        transcode_mobile(work_file, s3_path)
+        transcode_mobile(work_file, video_file_type, s3_path)
 
         mobile_media = {
             "type": "video",
             "tag": "mobile",
-            "url": f"{s3_path}/mobile.mp4",
+            "url": f"{s3_path}/mobile.{video_file_type.extension}",
+            "transparentVideoUrl": f"{s3_path}/mobile.MP4"
+            if video_file_type.mime == "video/mp4"
+            else "",  # webms are also created if the mime type is webm
         }
 
         upload_answer_and_task_status_update(

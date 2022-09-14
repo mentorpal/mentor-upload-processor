@@ -8,6 +8,8 @@ from threading import Thread
 import urllib.request
 from os import remove
 
+from ..media_tools import get_video_file_type
+
 from .api import (
     ImportMentorGQLRequest,
     UpdateAnswersGQLRequest,

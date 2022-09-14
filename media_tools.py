@@ -11,6 +11,8 @@ import re
 from typing import List, Optional, Tuple, Union
 import math
 import ffmpy
+import filetype
+from module.constants import Supported_Video_Type, supported_video_types
 from pymediainfo import MediaInfo
 
 
@@ -20,6 +22,13 @@ LIB_FILE = os.environ.get(
 FFMPEG_EXECUTABLE = os.environ.get("FFMPEG_EXECUTABLE", "/opt/ffmpeg/ffmpeg")
 
 log = logging.getLogger("media-tools")
+
+
+def get_file_mime(video_file) -> str:
+    file_type = filetype.guess(video_file)
+    if file_type is None:
+        raise Exception("Failed to determine file type")
+    return file_type.mime
 
 
 def assert_video_duration(video_file, min_length):
@@ -66,37 +75,84 @@ def format_secs(secs: Union[float, int, str]) -> str:
     return f"{float(str(secs)):.3f}"
 
 
-def output_args_trim_video(start_secs: float, end_secs: float) -> Tuple[str, ...]:
-    return (
+def input_output_args_trim_video(
+    start_secs: float, end_secs: float, src_file: str
+) -> Tuple[str, ...]:
+    mime_type = get_file_mime(src_file)
+    i_w, i_h = find_video_dims(src_file)
+    o_w = int(i_w)
+    o_h = int(i_h)
+    if o_w % 2 != 0:
+        o_w += 1  # ensure width is divisible by 2
+    if o_h % 2 != 0:
+        o_h += 1  # ensure height is divisible by 2
+    input_args = ("-c:v", "libvpx-vp9") if mime_type == "video/webm" else None  # mp4
+    output_args = (
+        "-y",
+        "-filter:v",
+        f"scale={o_w:.0f}:{o_h:.0f}",
         "-ss",
         format_secs(start_secs),
         "-to",
         format_secs(end_secs),
         "-c:v",
-        "libx264",
+        "libx264" if mime_type == "video/mp4" else "libvpx-vp9",
         "-crf",
         "30",
     )
+    return input_args, output_args
 
 
-def output_args_video_encode_for_mobile(
-    src_file: str, target_height=480, video_dims: Optional[Tuple[int, int]] = None
-) -> Tuple[str, ...]:
-    i_w, i_h = video_dims or find_video_dims(src_file)
-    o_w, o_h = (target_height, target_height)
-    crop_w = 0
-    crop_h = 0
-    if i_w > i_h:
-        # for now assumes we want to zoom in slightly on landscape videos
-        # before cropping to square
-        crop_h = i_h * 0.25
-        crop_w = i_w - (i_h - crop_h)
-    else:
-        crop_h = crop_h - crop_h
-    return (
+def webm_ffmpeg_transcode_args(
+    crop_iw: float, crop_ih: float, scale_ow: int, scale_oh: int
+):
+    return ("-c:v", "libvpx-vp9"), (
         "-y",
         "-filter:v",
-        f"crop=iw-{crop_w:.0f}:ih-{crop_h:.0f},scale={o_w:.0f}:{o_h:.0f}",
+        f"crop=iw-{crop_iw:.0f}:ih-{crop_ih:.0f},scale={scale_ow:.0f}:{scale_oh:.0f}",
+        "-c:v",
+        "libvpx-vp9",  # vp9 codec supports alpha channel
+        "-crf",
+        "23",
+        "-pix_fmt",
+        "yuva420p",  # add alpha channel
+        "-movflags",
+        "+faststart",
+        "-c:a",
+        "aac",
+        "-ac",
+        "1",
+        "-loglevel",
+        "quiet",
+        "-metadata:s:v:0",
+        "alpha_mode=1",
+        "-acodec",
+        "libvorbis",
+    )
+
+
+def get_video_file_type(file_path: str) -> Supported_Video_Type:
+    video_file_mime = get_file_mime(file_path)
+    log.debug(f"video mime type: {video_file_mime}")
+    try:
+        video_file_type = next(
+            video_type
+            for video_type in supported_video_types
+            if video_type.mime == video_file_mime
+        )
+    except Exception as e:
+        log.error(e)
+        raise Exception(f"Unsupported video mime type: {video_file_mime}")
+    return video_file_type
+
+
+def mp4_ffmpeg_transcode_args(
+    crop_iw: float, crop_ih: float, scale_ow: int, scale_oh: int
+):
+    return None, (
+        "-y",
+        "-filter:v",
+        f"crop=iw-{crop_iw:.0f}:ih-{crop_ih:.0f},scale={scale_ow:.0f}:{scale_oh:.0f}",
         "-c:v",
         "libx264",
         "-crf",
@@ -114,8 +170,34 @@ def output_args_video_encode_for_mobile(
     )
 
 
-def output_args_video_encode_for_web(
+def get_args_video_encode_for_mobile(
     src_file: str,
+    video_mime_type: str,
+    target_height=480,
+    video_dims: Optional[Tuple[int, int]] = None,
+) -> Tuple[str, ...]:
+    i_w, i_h = video_dims or find_video_dims(src_file)
+    o_w, o_h = (target_height, target_height)
+    crop_w = 0
+    crop_h = 0
+    if i_w > i_h:
+        # for now assumes we want to zoom in slightly on landscape videos
+        # before cropping to square
+        crop_h = i_h * 0.25
+        crop_w = i_w - (i_h - crop_h)
+    else:
+        crop_h = crop_h - crop_h
+    if video_mime_type == "video/mp4":
+        return mp4_ffmpeg_transcode_args(crop_w, crop_h, o_w, o_h)
+    elif video_mime_type == "video/webm":
+        return webm_ffmpeg_transcode_args(crop_w, crop_h, o_w, o_h)
+    else:
+        raise Exception(f"Unsupported file mime type: {video_mime_type}")
+
+
+def get_args_video_encode_for_web(
+    src_file: str,
+    video_mime_type: str,
     max_height=720,
     target_aspect=1.77777777778,
     video_dims: Optional[Tuple[int, int]] = None,
@@ -136,41 +218,43 @@ def output_args_video_encode_for_web(
         o_w += 1  # ensure width is divisible by 2
     if o_h % 2 != 0:
         o_h += 1  # ensure height is divisible by 2
-    return (
-        "-y",
-        "-filter:v",
-        f"crop=iw-{crop_w:.0f}:ih-{crop_h:.0f},scale={o_w:.0f}:{o_h:.0f}",
-        "-c:v",
-        "libx264",
-        "-crf",
-        "23",
-        "-pix_fmt",
-        "yuv420p",
-        "-movflags",
-        "+faststart",
-        "-c:a",
-        "aac",
-        "-ac",
-        "1",
-        "-loglevel",
-        "quiet",
-    )
+    if video_mime_type == "video/mp4":
+        return mp4_ffmpeg_transcode_args(crop_w, crop_h, o_w, o_h)
+    elif video_mime_type == "video/webm":
+        return webm_ffmpeg_transcode_args(crop_w, crop_h, o_w, o_h)
+    else:
+        raise Exception(f"Unsupported file mime type: {video_mime_type}")
 
 
 def output_args_video_to_audio() -> Tuple[str, ...]:
     return ("-loglevel", "info", "-y")
 
 
-def video_encode_for_mobile(src_file: str, tgt_file: str, target_height=480) -> None:
+def video_encode_for_mobile(
+    src_file: str, tgt_file: str, video_mime_type: str, target_height=480
+) -> None:
     log.info("%s, %s, %s", src_file, tgt_file, target_height)
 
+    input_args, output_args = get_args_video_encode_for_mobile(
+        src_file, video_mime_type, target_height=target_height
+    )
+
+    ff = ffmpy.FFmpeg(
+        inputs={str(src_file): input_args},
+        outputs={str(tgt_file): output_args},
+        executable=FFMPEG_EXECUTABLE,
+    )
+    ff.run()
+    log.debug(ff)
+
+
+# ffmpeg can transcode from one file type to another simply by extension name
+# i.e. if input is video.webm and target file is video.mp4, it will transcode from webm --> mp4
+def ffmpeg_barebones_transcode(src_file: str, tgt_file: str):
+    log.info("starting webm to mp4 transcode")
     ff = ffmpy.FFmpeg(
         inputs={str(src_file): None},
-        outputs={
-            str(tgt_file): output_args_video_encode_for_mobile(
-                src_file, target_height=target_height
-            )
-        },
+        outputs={str(tgt_file): None},
         executable=FFMPEG_EXECUTABLE,
     )
     ff.run()
@@ -178,17 +262,22 @@ def video_encode_for_mobile(src_file: str, tgt_file: str, target_height=480) -> 
 
 
 def video_encode_for_web(
-    src_file: str, tgt_file: str, max_height=720, target_aspect=1.77777777778
+    src_file: str,
+    tgt_file: str,
+    video_mime_type: str,
+    max_height=720,
+    target_aspect=1.77777777778,
 ) -> None:
     log.info("%s, %s, %s, %s", src_file, tgt_file, max_height, target_aspect)
     os.makedirs(os.path.dirname(tgt_file), exist_ok=True)
+
+    input_args, output_args = get_args_video_encode_for_web(
+        src_file, video_mime_type, max_height=max_height, target_aspect=target_aspect
+    )
+
     ff = ffmpy.FFmpeg(
-        inputs={str(src_file): None},
-        outputs={
-            str(tgt_file): output_args_video_encode_for_web(
-                src_file, max_height=max_height, target_aspect=target_aspect
-            )
-        },
+        inputs={str(src_file): input_args},
+        outputs={str(tgt_file): output_args},
         executable=FFMPEG_EXECUTABLE,
     )
     ff.run()
@@ -229,9 +318,12 @@ def video_trim(
     log.info("%s, %s, %s-%s", input_file, output_file, start_secs, end_secs)
     # couldnt get to output to stdout like here
     # https://aws.amazon.com/blogs/media/processing-user-generated-content-using-aws-lambda-and-ffmpeg/
+    input_args, output_args = input_output_args_trim_video(
+        start_secs, end_secs, input_file
+    )
     ff = ffmpy.FFmpeg(
-        inputs={str(input_file): None},
-        outputs={str(output_file): output_args_trim_video(start_secs, end_secs)},
+        inputs={str(input_file): input_args},
+        outputs={str(output_file): output_args},
         executable=FFMPEG_EXECUTABLE,
     )
     ff.run()
@@ -242,9 +334,12 @@ def existing_video_trim(
     input_file: str, output_file: str, start_secs: float, end_secs: float
 ) -> None:
     log.info("%s, %s, %s-%s", input_file, output_file, start_secs, end_secs)
+    input_args, output_args = input_output_args_trim_video(
+        start_secs, end_secs, input_file
+    )
     ff = ffmpy.FFmpeg(
-        inputs={str(input_file): None},
-        outputs={str(output_file): output_args_trim_video(start_secs, end_secs)},
+        inputs={str(input_file): input_args},
+        outputs={str(output_file): output_args},
         executable=FFMPEG_EXECUTABLE,
     )
     ff.run()
