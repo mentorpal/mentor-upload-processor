@@ -32,14 +32,16 @@ class JSONFormatter(logging.Formatter):
         del payload["name"]
         # need a copy of the record to avoid mutating the original:
         msg = copy.deepcopy(record.msg)
-        if 'isBase64Encoded' in msg and msg['isBase64Encoded']:
-            del msg['body'] # its a binary file, so we don't want to log it
-        if 'headers' in msg and 'Authorization' in msg['headers']:
-            msg['headers']['Authorization'] = msg['headers']['Authorization'][:8] + '...'
-        if 'multiValueHeaders' in msg:
-            del msg['multiValueHeaders']
-        if 'authorizationToken' in msg:
-            msg['authorizationToken'] = msg['authorizationToken'][:8] + '...'
+        if "isBase64Encoded" in msg and msg["isBase64Encoded"]:
+            del msg["body"]  # its a binary file, so we don't want to log it
+        if "headers" in msg and "Authorization" in msg["headers"]:
+            msg["headers"]["Authorization"] = (
+                msg["headers"]["Authorization"][:8] + "..."
+            )
+        if "multiValueHeaders" in msg:
+            del msg["multiValueHeaders"]
+        if "authorizationToken" in msg:
+            msg["authorizationToken"] = msg["authorizationToken"][:8] + "..."
         payload["message"] = msg
         return payload
 
