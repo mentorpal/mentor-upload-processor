@@ -256,7 +256,7 @@ class ProcessTransferMentor(TypedDict):
 @dataclass
 class ImportTaskUpdateGQLRequest:
     mentor: str
-    migration_errors: List[str]
+    migration_errors: List[str] = None
     graphql_update: ImportTaskCreateGraphQLUpdate = None
     s3_video_migration: ImportTaskCreateS3VideoMigration = None
 

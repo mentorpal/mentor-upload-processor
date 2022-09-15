@@ -2,6 +2,7 @@
 # Permission to use, copy, modify, and distribute this software and its documentation for educational, research and non-profit purposes, without fee, and without a written agreement is hereby granted, provided that the above copyright notice and subject to the full license file found in the root of this software deliverable. Permission to make commercial use of this software may be obtained by contacting:  USC Stevens Center for Innovation University of Southern California 1150 S. Olive Street, Suite 2300, Los Angeles, CA 90115, USA Email: accounting@stevens.usc.edu
 #
 # The full terms of this copyright and license should always be found in the root directory of this software deliverable as "license.txt" and if these terms are not found with this software, please contact the USC Stevens Center for the full license.
+from dataclasses import dataclass
 import logging
 import queue
 from threading import Thread
@@ -159,6 +160,7 @@ class ProcessTransferMentor(TypedDict):
     replacedMentorDataChanges: List[ReplacedMentorDataChanges]
 
 
+@dataclass
 class WorkerResult:
     update: Dict
     errors: List[str]
@@ -286,10 +288,12 @@ def process_transfer_mentor(s3_client, s3_bucket, req: ProcessTransferMentor):
     answer_args_results = thread_video_uploads(
         answers_with_media_transfers, mentor, s3_client, s3_bucket, 12
     )
-    answer_updates = list(map(lambda r: r.update, answer_args_results))
-    errors = [item for sublist in answer_updates for item in sublist]
-    logging.error(answer_updates)
-    logging.error(errors)
+    answer_updates_unflat = list(map(lambda r: r.update, answer_args_results))
+    answer_updates = [item for sublist in answer_updates_unflat for item in sublist]
+    errors_unflat = list(map(lambda r: r.errors, answer_args_results))
+    errors = [item for sublist in errors_unflat for item in sublist]
+    logging.info(answer_updates)
+    logging.info(errors)
     update_answers_gql(UpdateAnswersGQLRequest(mentorId=mentor, answers=answer_updates))
 
     s3_video_migration_update = {"status": "DONE"}
