@@ -113,16 +113,9 @@ class ImportTaskCreateGraphQLUpdate:
 
 
 @dataclass
-class AnswerMediaMigrationTask:
-    question: str
-    status: str
-    errorMessage: str = ""  # noqa
-
-
-@dataclass
 class ImportTaskCreateS3VideoMigration:
     status: str
-    answerMediaMigrations: List[AnswerMediaMigrationTask]  # noqa
+    errorMessage: str
 
 
 @dataclass
@@ -130,13 +123,6 @@ class ImportTaskGQLRequest:
     mentor: str
     graphql_update: ImportTaskCreateGraphQLUpdate
     s3_video_migration: ImportTaskCreateS3VideoMigration
-
-
-@dataclass
-class AnswerMediaMigrateUpdate:
-    question: str
-    status: str
-    errorMessage: str
 
 
 class MentorInfo:
@@ -270,9 +256,9 @@ class ProcessTransferMentor(TypedDict):
 @dataclass
 class ImportTaskUpdateGQLRequest:
     mentor: str
+    migration_errors: List[str] = None
     graphql_update: ImportTaskCreateGraphQLUpdate = None
     s3_video_migration: ImportTaskCreateS3VideoMigration = None
-    answerMediaMigrateUpdate: AnswerMediaMigrateUpdate = None
 
 
 def fetch_question_name_gql(question_id: str) -> GQLQueryBody:
@@ -555,15 +541,14 @@ def import_task_update_gql_query(req: ImportTaskUpdateGQLRequest) -> GQLQueryBod
         variables["graphQLUpdate"] = req.graphql_update
     if req.s3_video_migration:
         variables["s3VideoMigrateUpdate"] = req.s3_video_migration
-    if req.answerMediaMigrateUpdate:
-        variables["answerMediaMigrateUpdate"] = req.answerMediaMigrateUpdate
-
+    if req.migration_errors:
+        variables["migrationErrors"] = req.migration_errors
     return {
-        "query": """mutation ImportTaskUpdate($mentor: ID!, $graphQLUpdate: GraphQLUpdateInputType, $s3VideoMigrateUpdate: S3VideoMigrationInputType, $answerMediaMigrateUpdate: AnswerMediaMigrationInputType){
-                        api{
-                            importTaskUpdate(mentor: $mentor, graphQLUpdate: $graphQLUpdate, s3VideoMigrateUpdate: $s3VideoMigrateUpdate, answerMediaMigrateUpdate:$answerMediaMigrateUpdate)
-                        }
-                    }""",
+        "query": """mutation ImportTaskUpdate($mentor: ID!, $graphQLUpdate: GraphQLUpdateInputType, $s3VideoMigrateUpdate: S3VideoMigrationInputType, $migrationErrors: [String]){
+  api{
+      importTaskUpdate(mentor: $mentor, graphQLUpdate: $graphQLUpdate, s3VideoMigrateUpdate: $s3VideoMigrateUpdate, migrationErrors: $migrationErrors)
+  }
+}""",
         "variables": variables,
     }
 
@@ -721,6 +706,76 @@ def import_task_update_gql(req: ImportTaskGQLRequest) -> None:
     headers = {"mentor-graphql-req": "true", "Authorization": f"bearer {get_api_key()}"}
     body = import_task_update_gql_query(req)
     res = requests.post(get_graphql_endpoint(), json=body, headers=headers)
+    res.raise_for_status()
+    tdjson = res.json()
+    if "errors" in tdjson:
+        raise Exception(json.dumps(tdjson.get("errors")))
+
+
+@dataclass
+class UpdateAnswer:
+    questionId: str
+    web_media: Media = None
+    mobile_media: Media = None
+    vtt_media: Media = None
+    transcript: str = None
+    has_edited_transcript: bool = None
+
+
+@dataclass
+class UpdateAnswersGQLRequest:
+    mentorId: str
+    answers: List[UpdateAnswer]
+
+
+def update_answers_gql_query(req: UpdateAnswersGQLRequest) -> GQLQueryBody:
+    answers = list(
+        map(
+            lambda answer: {
+                **(
+                    {"mobileMedia": answer["mobile_media"]}
+                    if "mobile_media" in answer
+                    else {}
+                ),
+                **({"webMedia": answer["web_media"]} if "web_media" in answer else {}),
+                **({"vttMedia": answer["vtt_media"]} if "vtt_media" in answer else {}),
+                **(
+                    {"hasEditedTranscript": answer["has_edited_transcript"]}
+                    if "has_edited_transcript" in answer
+                    else {}
+                ),
+                **(
+                    {"transcript": answer["transcript"]}
+                    if "transcript" in answer
+                    else {}
+                ),
+                **(
+                    {"questionId": answer["questionId"]}
+                    if "questionId" in answer
+                    else {}
+                ),
+            },
+            req.answers,
+        )
+    )
+    return {
+        "query": """mutation UpdateAnswers($mentorId: ID!, $answers: [UploadAnswersType]) {
+            api {
+                updateAnswers(mentorId: $mentorId, answers: $answers)
+            }
+        }""",
+        "variables": {
+            "mentorId": req.mentorId,
+            "answers": answers,
+        },
+    }
+
+
+def update_answers_gql(req: UpdateAnswersGQLRequest) -> None:
+    headers = {"mentor-graphql-req": "true", "Authorization": f"bearer {get_api_key()}"}
+    body = update_answers_gql_query(req)
+    res = requests.post(get_graphql_endpoint(), json=body, headers=headers)
+    log.error(res.json())
     res.raise_for_status()
     tdjson = res.json()
     if "errors" in tdjson:
