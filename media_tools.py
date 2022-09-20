@@ -12,6 +12,8 @@ from typing import List, Optional, Tuple, Union
 import math
 import ffmpy
 import filetype
+import subprocess
+import json
 from module.constants import Supported_Video_Type, supported_video_types
 from pymediainfo import MediaInfo
 
@@ -104,31 +106,54 @@ def input_output_args_trim_video(
 
 
 def webm_ffmpeg_transcode_args(
-    crop_iw: float, crop_ih: float, scale_ow: int, scale_oh: int
+    crop_iw: float, crop_ih: float, scale_ow: int, scale_oh: int, video_codecs: str
 ):
-    return ("-c:v", "libvpx-vp9"), (
-        "-y",
-        "-filter:v",
-        f"crop=iw-{crop_iw:.0f}:ih-{crop_ih:.0f},scale={scale_ow:.0f}:{scale_oh:.0f}",
-        "-c:v",
-        "libvpx-vp9",  # vp9 codec supports alpha channel
-        "-crf",
-        "23",
-        "-pix_fmt",
-        "yuva420p",  # add alpha channel
-        "-movflags",
-        "+faststart",
-        "-c:a",
-        "aac",
-        "-ac",
-        "1",
-        "-loglevel",
-        "quiet",
-        "-metadata:s:v:0",
-        "alpha_mode=1",
-        "-acodec",
-        "libvorbis",
-    )
+    if (
+        video_codecs == "vp9"
+    ):  # Only specify an input codecs if it is verified, else ffmpeg will throw error
+        return ("-c:v", "libvpx-vp9"), (
+            "-y",
+            "-filter:v",
+            f"crop=iw-{crop_iw:.0f}:ih-{crop_ih:.0f},scale={scale_ow:.0f}:{scale_oh:.0f}",
+            "-c:v",
+            "libvpx-vp9",  # vp9 codec supports alpha channel
+            "-crf",
+            "23",
+            "-pix_fmt",
+            "yuva420p",  # add alpha channel
+            "-movflags",
+            "+faststart",
+            "-c:a",
+            "aac",
+            "-ac",
+            "1",
+            "-loglevel",
+            "verbose",
+            "-metadata:s:v:0",
+            "alpha_mode=1",
+            "-acodec",
+            "libvorbis",
+        )
+    else:
+        return None, (
+            "-y",
+            "-filter:v",
+            f"crop=iw-{crop_iw:.0f}:ih-{crop_ih:.0f},scale={scale_ow:.0f}:{scale_oh:.0f}",
+            "-crf",
+            "23",
+            "-pix_fmt",
+            "yuv420p",
+            "-movflags",
+            "+faststart",
+            "-c:a",
+            "aac",
+            "-ac",
+            "1",
+            "-loglevel",
+            "verbose",
+            "-acodec",
+            "libvorbis",
+        )
 
 
 def get_video_file_type(file_path: str) -> Supported_Video_Type:
@@ -144,6 +169,26 @@ def get_video_file_type(file_path: str) -> Supported_Video_Type:
         log.error(e)
         raise Exception(f"Unsupported video mime type: {video_file_mime}")
     return video_file_type
+
+
+def get_video_encoding_type(src_file):
+    try:
+        ff = ffmpy.FFprobe(
+            inputs={
+                str(src_file): ("-v", "quiet", "-print_format", "json", "-show_streams")
+            }
+        )
+        output = ff.run(stdout=subprocess.PIPE)
+        data = json.loads(output[0])
+        streams = data["streams"]
+        video_stream = next(
+            stream for stream in streams if stream["codec_type"] == "video"
+        )
+        codec = video_stream["codec_name"]
+        return codec
+    except Exception:
+        log.info(f"Unable to determine codec type for {src_file}")
+        return ""
 
 
 def mp4_ffmpeg_transcode_args(
@@ -187,10 +232,11 @@ def get_args_video_encode_for_mobile(
         crop_w = i_w - (i_h - crop_h)
     else:
         crop_h = crop_h - crop_h
+    video_codecs = get_video_encoding_type(src_file)
     if video_mime_type == "video/mp4":
         return mp4_ffmpeg_transcode_args(crop_w, crop_h, o_w, o_h)
     elif video_mime_type == "video/webm":
-        return webm_ffmpeg_transcode_args(crop_w, crop_h, o_w, o_h)
+        return webm_ffmpeg_transcode_args(crop_w, crop_h, o_w, o_h, video_codecs)
     else:
         raise Exception(f"Unsupported file mime type: {video_mime_type}")
 
@@ -218,10 +264,11 @@ def get_args_video_encode_for_web(
         o_w += 1  # ensure width is divisible by 2
     if o_h % 2 != 0:
         o_h += 1  # ensure height is divisible by 2
+    video_codecs = get_video_encoding_type(src_file)
     if video_mime_type == "video/mp4":
         return mp4_ffmpeg_transcode_args(crop_w, crop_h, o_w, o_h)
     elif video_mime_type == "video/webm":
-        return webm_ffmpeg_transcode_args(crop_w, crop_h, o_w, o_h)
+        return webm_ffmpeg_transcode_args(crop_w, crop_h, o_w, o_h, video_codecs)
     else:
         raise Exception(f"Unsupported file mime type: {video_mime_type}")
 
