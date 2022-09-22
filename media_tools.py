@@ -22,6 +22,8 @@ LIB_FILE = os.environ.get(
     "MEDIAINFO_LIB", "/opt/MediaInfo_DLL_21.09_Lambda/lib/libmediainfo.so"
 )
 FFMPEG_EXECUTABLE = os.environ.get("FFMPEG_EXECUTABLE", "/opt/ffmpeg/ffmpeg")
+FFPROBE_EXECUTABLE = os.environ.get("FFPROBE_EXECUTABLE", "/opt/ffmpeg/ffprobe")
+
 
 log = logging.getLogger("media-tools")
 
@@ -153,7 +155,8 @@ def get_video_encoding_type(src_file):
         ff = ffmpy.FFprobe(
             inputs={
                 str(src_file): ("-v", "quiet", "-print_format", "json", "-show_streams")
-            }
+            },
+            executable=FFPROBE_EXECUTABLE,
         )
         output = ff.run(stdout=subprocess.PIPE)
         data = json.loads(output[0])
@@ -163,7 +166,8 @@ def get_video_encoding_type(src_file):
         )
         codec = video_stream["codec_name"]
         return codec
-    except Exception:
+    except Exception as e:
+        log.info(e)
         log.info(f"Unable to determine codec type for {src_file}")
         return ""
 

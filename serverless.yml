@@ -122,6 +122,7 @@ provider:
     PYTHON_ENV: careerfair-${self:provider.stage}
     S3_STATIC_ARN: ${self:custom.stages.${self:provider.stage}.S3_STATIC_ARN}
     FFMPEG_EXECUTABLE: /opt/ffmpeg/ffmpeg
+    FFPROBE_EXECUTABLE: /opt/ffmpeg/ffprobe
     GRAPHQL_ENDPOINT: ${self:custom.stages.${self:provider.stage}.GRAPHQL_ENDPOINT}
     API_SECRET: ${self:custom.stages.${self:provider.stage}.API_SECRET}
     IS_SENTRY_ENABLED: ${self:custom.stages.${self:provider.stage}.IS_SENTRY_ENABLED}
@@ -191,6 +192,7 @@ layers:
         # relative to layer path:
         # when attached, these are available under /opt
         - ./ffmpeg/ffmpeg
+        - ./ffmpeg/ffprobe
         - './MediaInfo_DLL_21.09_Lambda/lib/**'
     name: binaries-layer-${self:provider.stage}
     description: Bundles ffmpeg and mediainfo binaries/libs
