@@ -159,6 +159,9 @@ def handler(event, context):
     mentor = upload_request["mentor"]
     question = upload_request["question"]
     video_key = upload_request["video"]
+    is_vbg_video = (
+        upload_request["vbgVideo"] if "vbgVideo" in upload_request else False
+    )  # vbg videos are expected to be in format of mime type webm with vp9 encoding
     trim = upload_request.get("trim")
     has_edited_transcript = upload_request.get("hasEditedTranscript")
     token = json.loads(event["requestContext"]["authorizer"]["token"])
@@ -217,6 +220,7 @@ def handler(event, context):
             "mentor": mentor,
             "question": question,
             "video": f"{s3_path}/original.{video_file_type.extension}",
+            "isVbgVideo": is_vbg_video,
             **({"trim": trim} if trim is not None else {}),
             "transcodeWebTask": transcode_web_task,
             "transcodeMobileTask": transcode_mobile_task,
