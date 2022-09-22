@@ -160,7 +160,7 @@ def handler(event, context):
     question = upload_request["question"]
     video_key = upload_request["video"]
     is_vbg_video = (
-        upload_request["vbgVideo"] if "vbgVideo" in upload_request else False
+        upload_request["isVbgVideo"] if "isVbgVideo" in upload_request else False
     )  # vbg videos are expected to be in format of mime type webm with vp9 encoding
     trim = upload_request.get("trim")
     has_edited_transcript = upload_request.get("hasEditedTranscript")
