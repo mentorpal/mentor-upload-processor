@@ -9,9 +9,10 @@ import tempfile
 import os
 from module.logger import get_logger
 from media_tools import (
-    get_video_file_type,
+    get_file_mime,
     video_encode_for_mobile,
     ffmpeg_barebones_transcode,
+    get_video_encoding_type,
 )
 from module.api import (
     UpdateTaskStatusRequest,
@@ -24,7 +25,7 @@ from module.utils import (
     load_sentry,
     fetch_from_graphql,
 )
-from module.constants import Supported_Video_Type, MP4
+from module.constants import Supported_Video_Type, MP4, WEBM_VP9
 
 load_sentry()
 log = get_logger("answer-transcode-mobile-handler")
@@ -77,12 +78,22 @@ def process_task(request):
         work_file = os.path.join(work_dir, "original_video")
         s3.download_file(s3_bucket, request["video"], work_file)
 
-        try:
-            video_file_type = get_video_file_type(work_file)
-        except Exception as e:
-            log.debug(e)
-            log.debug("unknown file mime type, will attempt to transcode to mp4")
-            video_file_type = MP4
+        is_vbg_video = request["isVbgVideo"] if "isVbgVideo" in request else False
+        if is_vbg_video:
+            try:
+                file_mime_type = get_file_mime(work_file)
+                file_encoding = get_video_encoding_type(work_file)
+                if file_mime_type == "video/webm" and file_encoding == "vp9":
+                    desired_video_file_type = WEBM_VP9
+                else:
+                    desired_video_file_type = MP4
+            except:
+                log.info(
+                    f"Failed to determine mime and encoding type for {work_file}, defaulting to mp4"
+                )
+                desired_video_file_type = MP4
+        else:
+            desired_video_file_type = MP4
 
         s3_path = os.path.dirname(request["video"])  # same 'folder' as original file
         log.info("%s downloaded to %s", request["video"], work_dir)
@@ -95,14 +106,14 @@ def process_task(request):
             )
         )
 
-        transcode_mobile(work_file, video_file_type, s3_path)
+        transcode_mobile(work_file, desired_video_file_type, s3_path)
 
         mobile_media = {
             "type": "video",
             "tag": "mobile",
-            "url": f"{s3_path}/mobile.{video_file_type.extension}",
-            "transparentVideoUrl": f"{s3_path}/mobile.MP4"
-            if video_file_type.mime == "video/mp4"
+            "url": f"{s3_path}/mobile.mp4",  # mp4's are always created
+            "transparentVideoUrl": f"{s3_path}/mobile.webm"
+            if desired_video_file_type.mime == "video/webm"
             else "",  # webms are also created if the mime type is webm
         }
 

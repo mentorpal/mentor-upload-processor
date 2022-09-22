@@ -22,6 +22,8 @@ LIB_FILE = os.environ.get(
     "MEDIAINFO_LIB", "/opt/MediaInfo_DLL_21.09_Lambda/lib/libmediainfo.so"
 )
 FFMPEG_EXECUTABLE = os.environ.get("FFMPEG_EXECUTABLE", "/opt/ffmpeg/ffmpeg")
+FFPROBE_EXECUTABLE = os.environ.get("FFPROBE_EXECUTABLE", "/opt/ffmpeg/ffprobe")
+
 
 log = logging.getLogger("media-tools")
 
@@ -78,9 +80,8 @@ def format_secs(secs: Union[float, int, str]) -> str:
 
 
 def input_output_args_trim_video(
-    start_secs: float, end_secs: float, src_file: str
+    start_secs: float, end_secs: float, src_file: str, video_mime_type: str
 ) -> Tuple[str, ...]:
-    mime_type = get_file_mime(src_file)
     i_w, i_h = find_video_dims(src_file)
     o_w = int(i_w)
     o_h = int(i_h)
@@ -88,7 +89,7 @@ def input_output_args_trim_video(
         o_w += 1  # ensure width is divisible by 2
     if o_h % 2 != 0:
         o_h += 1  # ensure height is divisible by 2
-    input_args = ("-c:v", "libvpx-vp9") if mime_type == "video/webm" else None  # mp4
+    input_args = ("-c:v", "libvpx-vp9") if video_mime_type == "video/webm" else None
     output_args = (
         "-y",
         "-filter:v",
@@ -98,62 +99,40 @@ def input_output_args_trim_video(
         "-to",
         format_secs(end_secs),
         "-c:v",
-        "libx264" if mime_type == "video/mp4" else "libvpx-vp9",
+        "libx264" if video_mime_type == "video/mp4" else "libvpx-vp9",
         "-crf",
         "30",
     )
     return input_args, output_args
 
 
-def webm_ffmpeg_transcode_args(
-    crop_iw: float, crop_ih: float, scale_ow: int, scale_oh: int, video_codecs: str
+# Note: These args REQUIRE the input video to be vp9 encoded, else ffmpeg will throw an error
+def webm_vp9_ffmpeg_transcode_args(
+    crop_iw: float, crop_ih: float, scale_ow: int, scale_oh: int
 ):
-    if (
-        video_codecs == "vp9"
-    ):  # Only specify an input codecs if it is verified, else ffmpeg will throw error
-        return ("-c:v", "libvpx-vp9"), (
-            "-y",
-            "-filter:v",
-            f"crop=iw-{crop_iw:.0f}:ih-{crop_ih:.0f},scale={scale_ow:.0f}:{scale_oh:.0f}",
-            "-c:v",
-            "libvpx-vp9",  # vp9 codec supports alpha channel
-            "-crf",
-            "23",
-            "-pix_fmt",
-            "yuva420p",  # add alpha channel
-            "-movflags",
-            "+faststart",
-            "-c:a",
-            "aac",
-            "-ac",
-            "1",
-            "-loglevel",
-            "verbose",
-            "-metadata:s:v:0",
-            "alpha_mode=1",
-            "-acodec",
-            "libvorbis",
-        )
-    else:
-        return None, (
-            "-y",
-            "-filter:v",
-            f"crop=iw-{crop_iw:.0f}:ih-{crop_ih:.0f},scale={scale_ow:.0f}:{scale_oh:.0f}",
-            "-crf",
-            "23",
-            "-pix_fmt",
-            "yuv420p",
-            "-movflags",
-            "+faststart",
-            "-c:a",
-            "aac",
-            "-ac",
-            "1",
-            "-loglevel",
-            "verbose",
-            "-acodec",
-            "libvorbis",
-        )
+    return ("-c:v", "libvpx-vp9"), (
+        "-y",
+        "-filter:v",
+        f"crop=iw-{crop_iw:.0f}:ih-{crop_ih:.0f},scale={scale_ow:.0f}:{scale_oh:.0f}",
+        "-c:v",
+        "libvpx-vp9",  # vp9 codec supports alpha channel
+        "-crf",
+        "23",
+        "-pix_fmt",
+        "yuva420p",  # add alpha channel
+        "-movflags",
+        "+faststart",
+        "-c:a",
+        "aac",
+        "-ac",
+        "1",
+        "-loglevel",
+        "verbose",
+        "-metadata:s:v:0",
+        "alpha_mode=1",
+        "-acodec",
+        "libvorbis",
+    )
 
 
 def get_video_file_type(file_path: str) -> Supported_Video_Type:
@@ -176,7 +155,8 @@ def get_video_encoding_type(src_file):
         ff = ffmpy.FFprobe(
             inputs={
                 str(src_file): ("-v", "quiet", "-print_format", "json", "-show_streams")
-            }
+            },
+            executable=FFPROBE_EXECUTABLE,
         )
         output = ff.run(stdout=subprocess.PIPE)
         data = json.loads(output[0])
@@ -186,7 +166,8 @@ def get_video_encoding_type(src_file):
         )
         codec = video_stream["codec_name"]
         return codec
-    except Exception:
+    except Exception as e:
+        log.info(e)
         log.info(f"Unable to determine codec type for {src_file}")
         return ""
 
@@ -232,11 +213,10 @@ def get_args_video_encode_for_mobile(
         crop_w = i_w - (i_h - crop_h)
     else:
         crop_h = crop_h - crop_h
-    video_codecs = get_video_encoding_type(src_file)
     if video_mime_type == "video/mp4":
         return mp4_ffmpeg_transcode_args(crop_w, crop_h, o_w, o_h)
     elif video_mime_type == "video/webm":
-        return webm_ffmpeg_transcode_args(crop_w, crop_h, o_w, o_h, video_codecs)
+        return webm_vp9_ffmpeg_transcode_args(crop_w, crop_h, o_w, o_h)
     else:
         raise Exception(f"Unsupported file mime type: {video_mime_type}")
 
@@ -264,11 +244,10 @@ def get_args_video_encode_for_web(
         o_w += 1  # ensure width is divisible by 2
     if o_h % 2 != 0:
         o_h += 1  # ensure height is divisible by 2
-    video_codecs = get_video_encoding_type(src_file)
     if video_mime_type == "video/mp4":
         return mp4_ffmpeg_transcode_args(crop_w, crop_h, o_w, o_h)
     elif video_mime_type == "video/webm":
-        return webm_ffmpeg_transcode_args(crop_w, crop_h, o_w, o_h, video_codecs)
+        return webm_vp9_ffmpeg_transcode_args(crop_w, crop_h, o_w, o_h)
     else:
         raise Exception(f"Unsupported file mime type: {video_mime_type}")
 
@@ -360,29 +339,17 @@ def video_to_audio(
 
 
 def video_trim(
-    input_file: str, output_file: str, start_secs: float, end_secs: float
+    input_file: str,
+    output_file: str,
+    start_secs: float,
+    end_secs: float,
+    desired_video_file_type: Supported_Video_Type,
 ) -> None:
     log.info("%s, %s, %s-%s", input_file, output_file, start_secs, end_secs)
     # couldnt get to output to stdout like here
     # https://aws.amazon.com/blogs/media/processing-user-generated-content-using-aws-lambda-and-ffmpeg/
     input_args, output_args = input_output_args_trim_video(
-        start_secs, end_secs, input_file
-    )
-    ff = ffmpy.FFmpeg(
-        inputs={str(input_file): input_args},
-        outputs={str(output_file): output_args},
-        executable=FFMPEG_EXECUTABLE,
-    )
-    ff.run()
-    log.debug(ff)
-
-
-def existing_video_trim(
-    input_file: str, output_file: str, start_secs: float, end_secs: float
-) -> None:
-    log.info("%s, %s, %s-%s", input_file, output_file, start_secs, end_secs)
-    input_args, output_args = input_output_args_trim_video(
-        start_secs, end_secs, input_file
+        start_secs, end_secs, input_file, desired_video_file_type.mime
     )
     ff = ffmpy.FFmpeg(
         inputs={str(input_file): input_args},

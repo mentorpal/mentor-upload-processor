@@ -7,7 +7,7 @@
 import boto3
 import tempfile
 import os
-from media_tools import get_file_mime, video_trim
+from media_tools import get_file_mime, video_trim, get_video_encoding_type
 
 from module.utils import (
     s3_bucket,
@@ -15,7 +15,7 @@ from module.utils import (
     require_env,
     fetch_from_graphql,
 )
-from module.constants import Supported_Video_Type, supported_video_types
+from module.constants import MP4, WEBM_VP9, Supported_Video_Type, supported_video_types
 from module.api import (
     UpdateTaskStatusRequest,
     upload_task_status_update,
@@ -63,32 +63,39 @@ def process_task(request):
             )
         )
 
-        uploaded_video_mime_type = get_file_mime(work_file)
-        log.info(f"video mime type: {uploaded_video_mime_type}")
-        try:
-            video_file_type = next(
-                video_type
-                for video_type in supported_video_types
-                if video_type.mime == uploaded_video_mime_type
-            )
-        except Exception:
-            raise Exception(f"Unsupported video mime type: {uploaded_video_mime_type}")
+        is_vbg_video = request["isVbgVideo"] if "isVbgVideo" in request else False
+        if is_vbg_video:
+            try:
+                file_mime_type = get_file_mime(work_file)
+                file_encoding = get_video_encoding_type(work_file)
+                if file_mime_type == "video/webm" and file_encoding == "vp9":
+                    desired_video_file_type = WEBM_VP9
+                else:
+                    desired_video_file_type = MP4
+            except:
+                log.info(
+                    f"Failed to determine mime and encoding type for {work_file}, defaulting to mp4"
+                )
+                desired_video_file_type = MP4
+        else:
+            desired_video_file_type = MP4
 
         log.info("trimming file %s", work_file)
-        trim_file = f"{work_file}-trim.{video_file_type.extension}"
+        trim_file = f"{work_file}-trim.{desired_video_file_type.extension}"
         video_trim(
             work_file,
             trim_file,
             request["trim"]["start"],
             request["trim"]["end"],
+            desired_video_file_type,
         )
         log.info("trim completed")
         s3_path = f"videos/{request['mentor']}/{request['question']}"
         s3_client.upload_file(
             trim_file,
             s3_bucket,
-            f"{s3_path}/original.{video_file_type.extension}",
-            ExtraArgs={"ContentType": video_file_type.mime},
+            f"{s3_path}/original.{desired_video_file_type.extension}",
+            ExtraArgs={"ContentType": desired_video_file_type.mime},
         )
         log.info("trimmed video uploaded")
 

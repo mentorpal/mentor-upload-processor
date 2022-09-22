@@ -10,11 +10,12 @@ import tempfile
 import os
 from module.logger import get_logger
 
-from module.constants import Supported_Video_Type, MP4
+from module.constants import Supported_Video_Type, MP4, WEBM_VP9
 from media_tools import (
-    get_video_file_type,
+    get_file_mime,
     video_encode_for_web,
     ffmpeg_barebones_transcode,
+    get_video_encoding_type,
 )
 from module.api import (
     UpdateTaskStatusRequest,
@@ -78,12 +79,24 @@ def process_task(request):
     with tempfile.TemporaryDirectory() as work_dir:
         work_file = os.path.join(work_dir, "original_video")
         s3.download_file(s3_bucket, request["video"], work_file)
-        try:
-            video_file_type = get_video_file_type(work_file)
-        except Exception as e:
-            log.debug(e)
-            log.debug("unknown file mime type, will attempt to transcode to mp4")
-            video_file_type = MP4
+
+        is_vbg_video = request["isVbgVideo"] if "isVbgVideo" in request else False
+        if is_vbg_video:
+            try:
+                file_mime_type = get_file_mime(work_file)
+                file_encoding = get_video_encoding_type(work_file)
+                if file_mime_type == "video/webm" and file_encoding == "vp9":
+                    desired_video_file_type = WEBM_VP9
+                else:
+                    desired_video_file_type = MP4
+            except:
+                log.info(
+                    f"Failed to determine mime and encoding type for {work_file}, defaulting to mp4"
+                )
+                desired_video_file_type = MP4
+        else:
+            desired_video_file_type = MP4
+
         s3_path = os.path.dirname(request["video"])
         log.info("%s downloaded to %s", request["video"], work_dir)
         upload_task_status_update(
@@ -94,14 +107,14 @@ def process_task(request):
             )
         )
 
-        transcode_web(work_file, video_file_type, s3_path)
+        transcode_web(work_file, desired_video_file_type, s3_path)
 
         web_media = {
             "type": "video",
             "tag": "web",
             "url": f"{s3_path}/web.mp4",  # mp4's are always created
             "transparentVideoUrl": f"{s3_path}/web.webm"
-            if video_file_type.mime == "video/webm"
+            if desired_video_file_type.mime == "video/webm"
             else "",  # webms are also created if the mime type is webm
         }
 
