@@ -87,10 +87,11 @@ def process_task(request):
                     desired_video_file_type = WEBM_VP9
                 else:
                     desired_video_file_type = MP4
-            except:
+            except Exception as e:
                 log.info(
                     f"Failed to determine mime and encoding type for {work_file}, defaulting to mp4"
                 )
+                log.info(e)
                 desired_video_file_type = MP4
         else:
             desired_video_file_type = MP4

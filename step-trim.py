@@ -15,7 +15,7 @@ from module.utils import (
     require_env,
     fetch_from_graphql,
 )
-from module.constants import MP4, WEBM_VP9, Supported_Video_Type, supported_video_types
+from module.constants import MP4, WEBM_VP9, Supported_Video_Type
 from module.api import (
     UpdateTaskStatusRequest,
     upload_task_status_update,
@@ -72,10 +72,11 @@ def process_task(request):
                     desired_video_file_type = WEBM_VP9
                 else:
                     desired_video_file_type = MP4
-            except:
+            except Exception as e:
                 log.info(
                     f"Failed to determine mime and encoding type for {work_file}, defaulting to mp4"
                 )
+                log.info(e)
                 desired_video_file_type = MP4
         else:
             desired_video_file_type = MP4
