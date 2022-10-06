@@ -113,7 +113,7 @@ def webm_vp9_ffmpeg_transcode_args(
     return ("-c:v", "libvpx-vp9"), (
         "-y",
         "-filter:v",
-        f"crop=iw-{crop_iw:.0f}:ih-{crop_ih:.0f},scale={scale_ow:.0f}:{scale_oh:.0f}",
+        f"crop=iw-{crop_iw:.0f}:ih-{crop_ih:.0f},scale={scale_ow:.0f}:{scale_oh:.0f},fps=30",
         "-c:v",
         "libvpx-vp9",  # vp9 codec supports alpha channel
         "-crf",
@@ -178,7 +178,7 @@ def mp4_ffmpeg_transcode_args(
     return None, (
         "-y",
         "-filter:v",
-        f"crop=iw-{crop_iw:.0f}:ih-{crop_ih:.0f},scale={scale_ow:.0f}:{scale_oh:.0f}",
+        f"crop=iw-{crop_iw:.0f}:ih-{crop_ih:.0f},scale={scale_ow:.0f}:{scale_oh:.0f},fps=30",
         "-c:v",
         "libx264",
         "-crf",
