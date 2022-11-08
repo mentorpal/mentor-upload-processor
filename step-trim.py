@@ -39,8 +39,9 @@ def get_original_video_url(
 
 
 def process_task(request):
+    auth_headers = request["authHeaders"]
     stored_task = fetch_from_graphql(
-        request["mentor"], request["question"], "trimUploadTask"
+        request["mentor"], request["question"], "trimUploadTask", auth_headers
     )
     if not stored_task:
         log.warn("task not found, skipping transcode")
@@ -60,7 +61,8 @@ def process_task(request):
                 mentor=request["mentor"],
                 question=request["question"],
                 trim_upload_task={"status": "IN_PROGRESS"},
-            )
+            ),
+            auth_headers,
         )
 
         is_vbg_video = request["isVbgVideo"] if "isVbgVideo" in request else False
@@ -105,7 +107,8 @@ def process_task(request):
                 mentor=request["mentor"],
                 question=request["question"],
                 trim_upload_task={"status": "DONE"},
-            )
+            ),
+            auth_headers,
         )
 
 

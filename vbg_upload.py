@@ -22,6 +22,7 @@ from module.utils import (
     is_authorized,
     load_sentry,
     require_env,
+    get_auth_headers,
 )
 
 
@@ -74,7 +75,7 @@ def handler(event, context):
     ):
         data = {"error": "Bad Request", "message": "only png/jpg images are accepted"}
         return create_json_response(401, data, event)
-
+    auth_headers = get_auth_headers(event)
     vbg_request = json.loads(form_data["body"].value)
     if "mentor" not in vbg_request:
         data = {
@@ -100,7 +101,8 @@ def handler(event, context):
         ExtraArgs={"ContentType": "image/png"},
     )
     mentor_vbg_update(
-        MentorVbgUpdateRequest(mentor=mentor, vbgPath=virtual_background_path)
+        MentorVbgUpdateRequest(mentor=mentor, vbgPath=virtual_background_path),
+        auth_headers,
     )
     static_url_base = require_env("STATIC_URL_BASE")
     data = {

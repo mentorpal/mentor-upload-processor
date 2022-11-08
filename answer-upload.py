@@ -19,6 +19,7 @@ from module.utils import (
     is_authorized,
     load_sentry,
     require_env,
+    get_auth_headers,
 )
 from module.api import (
     is_upload_in_progress,
@@ -29,6 +30,7 @@ from module.api import (
     upload_answer_update,
 )
 from module.logger import get_logger
+from typing import Dict
 
 
 load_sentry()
@@ -76,7 +78,12 @@ def create_task_list(trim, has_edited_transcript):
 
 
 def upload_to_s3(
-    file_path, video_file_type: Supported_Video_Type, s3_path, mentor, question
+    file_path,
+    video_file_type: Supported_Video_Type,
+    s3_path,
+    mentor,
+    question,
+    auth_headers,
 ):
     log.info("uploading %s to %s", file_path, s3_path)
 
@@ -89,7 +96,8 @@ def upload_to_s3(
             web_media={"type": "video", "tag": "web", "url": ""},
             mobile_media={"type": "video", "tag": "mobile", "url": ""},
             vtt_media={"type": "subtitles", "tag": "en", "url": ""},
-        )
+        ),
+        auth_headers,
     )
     # then remove old media in s3
     supported_extensions = list(
@@ -155,7 +163,7 @@ def handler(event, context):
             "message": "video s3 object parameter missing",
         }
         return create_json_response(401, data, event)
-
+    auth_headers = get_auth_headers(event)
     mentor = upload_request["mentor"]
     question = upload_request["question"]
     video_key = upload_request["video"]
@@ -172,7 +180,9 @@ def handler(event, context):
             "message": "not authorized",
         }
         return create_json_response(401, data, event)
-    upload_in_progress = is_upload_in_progress(FetchUploadTaskReq(mentor, question))
+    upload_in_progress = is_upload_in_progress(
+        FetchUploadTaskReq(mentor, question), auth_headers
+    )
     if upload_in_progress:
         data = {
             "error": "upload in progress",
@@ -201,7 +211,9 @@ def handler(event, context):
 
         s3_path = f"videos/{mentor}/{question}"
         # this will overwrite any existing file
-        upload_to_s3(file_path, video_file_type, s3_path, mentor, question)
+        upload_to_s3(
+            file_path, video_file_type, s3_path, mentor, question, auth_headers
+        )
 
     (
         transcode_web_task,
@@ -226,6 +238,7 @@ def handler(event, context):
             "transcodeMobileTask": transcode_mobile_task,
             "trimUploadTask": trim_upload_task,
             "transcribeTask": transcribe_task,
+            "authHeaders": auth_headers,
         }
     }
 
@@ -248,6 +261,7 @@ def handler(event, context):
                 "url": original_video_url,
             },
         ),
+        auth_headers,
     )
 
     # name must be unique for AWS account, region, and state machine for 90 days

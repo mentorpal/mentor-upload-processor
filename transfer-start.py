@@ -15,7 +15,13 @@ from module.logger import get_logger
 from module.transfer_mentor_schema import transfer_mentor_json_schema
 from jsonschema import validate, ValidationError
 from module.api import import_task_create_gql, ImportTaskGQLRequest
-from module.utils import create_json_response, is_authorized, load_sentry, require_env
+from module.utils import (
+    create_json_response,
+    is_authorized,
+    load_sentry,
+    require_env,
+    get_auth_headers,
+)
 
 
 load_sentry()
@@ -64,16 +70,17 @@ def handler(event, context):
 
     # this tends to be large so to avoid 400kb max item size:
     compressed_body = gzip.compress(bytes(body, "utf-8"))
-
+    auth_headers = get_auth_headers(event)
     graphql_update = {"status": "QUEUED"}
     s3_video_migration = {"status": "QUEUED"}
     import_task_create_gql(
-        ImportTaskGQLRequest(mentor, graphql_update, s3_video_migration)
+        ImportTaskGQLRequest(mentor, graphql_update, s3_video_migration), auth_headers
     )
     job_id = str(uuid.uuid4())
     train_job = {
         "id": job_id,
         "mentor": mentor,
+        "authHeaders": json.dumps(auth_headers),
         "status": "QUEUED",
         "payload": boto3.dynamodb.types.Binary(compressed_body),
         "created": datetime.now().isoformat(),

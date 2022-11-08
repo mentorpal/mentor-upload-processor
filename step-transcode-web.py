@@ -64,9 +64,10 @@ def transcode_web(video_file, video_file_type: Supported_Video_Type, s3_path):
 
 
 def process_task(request):
+    auth_headers = request["authHeaders"]
     log.info("video to process %s", request["video"])
     stored_task = fetch_from_graphql(
-        request["mentor"], request["question"], "transcodeWebTask"
+        request["mentor"], request["question"], "transcodeWebTask", auth_headers
     )
     if not stored_task:
         log.warn("task not found, skipping transcode")
@@ -105,7 +106,8 @@ def process_task(request):
                 mentor=request["mentor"],
                 question=request["question"],
                 transcode_web_task={"status": "IN_PROGRESS"},
-            )
+            ),
+            auth_headers,
         )
 
         transcode_web(work_file, desired_video_file_type, s3_path)
@@ -131,6 +133,7 @@ def process_task(request):
                 transcode_web_task={"status": "DONE"},
                 web_media=web_media,
             ),
+            auth_headers,
         )
 
 

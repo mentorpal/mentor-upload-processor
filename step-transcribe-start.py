@@ -21,6 +21,7 @@ from module.api import (
     fetch_question_name,
     upload_task_status_update,
 )
+from typing import Dict
 
 load_sentry()
 log = get_logger("answer-transcribe-start-handler")
@@ -33,8 +34,8 @@ transcribe = boto3.client("transcribe", region_name=aws_region)
 sfn_client = boto3.client("stepfunctions", region_name=aws_region)
 
 
-def is_idle_question(question_id: str) -> bool:
-    name = fetch_question_name(question_id)
+def is_idle_question(question_id: str, headers: Dict[str, str] = {}) -> bool:
+    name = fetch_question_name(question_id, headers)
     return name == "_IDLE_"
 
 
@@ -74,8 +75,9 @@ def transcribe_video(mentor, question, task_id, video_file, task_token):
 
 
 def process_task(request, task, task_token):
+    auth_headers = request["authHeaders"]
     stored_task = fetch_from_graphql(
-        request["mentor"], request["question"], "transcribeTask"
+        request["mentor"], request["question"], "transcribeTask", auth_headers
     )
     if not stored_task:
         log.warn("task not found, skipping transcription")
@@ -86,7 +88,7 @@ def process_task(request, task, task_token):
         sfn_client.send_task_success(taskToken=task_token, output="{}")
         return
 
-    is_idle = is_idle_question(request["question"])
+    is_idle = is_idle_question(request["question"], auth_headers)
     if is_idle:
         log.info("question is idle, nothing to transcribe")
         upload_task_status_update(
@@ -94,7 +96,8 @@ def process_task(request, task, task_token):
                 mentor=request["mentor"],
                 question=request["question"],
                 transcribe_task={"status": "DONE"},
-            )
+            ),
+            auth_headers,
         )
         sfn_client.send_task_success(taskToken=task_token, output="{}")
         return
@@ -107,7 +110,8 @@ def process_task(request, task, task_token):
                 "status": "IN_PROGRESS",
                 "payload": task_token,
             },
-        )
+        ),
+        auth_headers,
     )
 
     log.info("video to process %s", request["video"])

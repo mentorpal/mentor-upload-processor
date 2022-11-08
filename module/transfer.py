@@ -8,6 +8,7 @@ import queue
 from threading import Thread
 import urllib.request
 from os import remove
+import json
 
 from .api import (
     ImportMentorGQLRequest,
@@ -265,12 +266,17 @@ def transfer_mentor_videos_in_parellel(answer, mentor, s3_client, s3_bucket):
 
 
 def process_transfer_mentor(s3_client, s3_bucket, req: ProcessTransferMentor):
+    auth_headers = json.loads(req.get("authHeaders"))
     mentor = req.get("mentor")
     mentor_export_json = req.get("mentorExportJson")
     replaced_mentor_data_changes = req.get("replacedMentorDataChanges")
     graphql_update = {"status": "IN_PROGRESS"}
     mentor_import_res = import_mentor(
-        mentor, mentor_export_json, replaced_mentor_data_changes, graphql_update
+        mentor,
+        mentor_export_json,
+        replaced_mentor_data_changes,
+        graphql_update,
+        auth_headers,
     )
 
     answers = mentor_import_res["answers"]
@@ -282,7 +288,10 @@ def process_transfer_mentor(s3_client, s3_bucket, req: ProcessTransferMentor):
     )
     s3_video_migration = {"status": "IN_PROGRESS"}
     import_task_update_gql(
-        ImportTaskUpdateGQLRequest(mentor=mentor, s3_video_migration=s3_video_migration)
+        ImportTaskUpdateGQLRequest(
+            mentor=mentor, s3_video_migration=s3_video_migration
+        ),
+        auth_headers,
     )
 
     answer_args_results = thread_video_uploads(
@@ -295,7 +304,7 @@ def process_transfer_mentor(s3_client, s3_bucket, req: ProcessTransferMentor):
     chunks = [answer_updates[x: x + 100] for x in range(0, len(answer_updates), 100)]
     for answer_chunk in chunks:
         update_answers_gql(
-            UpdateAnswersGQLRequest(mentorId=mentor, answers=answer_chunk)
+            UpdateAnswersGQLRequest(mentorId=mentor, answers=answer_chunk), auth_headers
         )
 
     s3_video_migration_update = {"status": "DONE"}
@@ -304,21 +313,28 @@ def process_transfer_mentor(s3_client, s3_bucket, req: ProcessTransferMentor):
             mentor=mentor,
             s3_video_migration=s3_video_migration_update,
             migration_errors=errors,
-        )
+        ),
+        auth_headers,
     )
 
 
 def import_mentor(
-    mentor, mentor_export_json, replaced_mentor_data_changes, graphql_update
+    mentor,
+    mentor_export_json,
+    replaced_mentor_data_changes,
+    graphql_update,
+    auth_headers,
 ):
     import_task_update_gql(
-        ImportTaskUpdateGQLRequest(mentor=mentor, graphql_update=graphql_update)
+        ImportTaskUpdateGQLRequest(mentor=mentor, graphql_update=graphql_update),
+        auth_headers,
     )
     try:
         mentor_import_res = import_mentor_gql(
             ImportMentorGQLRequest(
                 mentor, mentor_export_json, replaced_mentor_data_changes
-            )
+            ),
+            auth_headers,
         )
     except Exception as e:
         logging.error("Failed to import mentor")
@@ -326,12 +342,14 @@ def import_mentor(
         import_task_update_gql(
             ImportTaskUpdateGQLRequest(
                 mentor=mentor, graphql_update={"status": "FAILED"}
-            )
+            ),
+            auth_headers,
         )
         raise e
     graphql_update = {"status": "DONE"}
     import_task_update_gql(
-        ImportTaskUpdateGQLRequest(mentor=mentor, graphql_update=graphql_update)
+        ImportTaskUpdateGQLRequest(mentor=mentor, graphql_update=graphql_update),
+        auth_headers,
     )
 
     return mentor_import_res

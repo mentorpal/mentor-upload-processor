@@ -110,8 +110,16 @@ def format_secs(secs: Union[float, int, str]) -> str:
     return f"{float(str(secs)):.3f}"
 
 
-def fetch_from_graphql(mentor, question, task_name):
-    upload_task = fetch_task(mentor, question)
+def get_auth_headers(event) -> Dict[str, str]:
+    return (
+        {"Authorization": event["headers"]["Authorization"]}
+        if "Authorization" in event["headers"]
+        else {}
+    )
+
+
+def fetch_from_graphql(mentor, question, task_name, headers):
+    upload_task = fetch_task(mentor, question, headers)
     if not upload_task:
         # this can happen if any task status is failed and client deletes the task
         return None

@@ -22,6 +22,7 @@ from module.utils import (
     is_authorized,
     load_sentry,
     require_env,
+    get_auth_headers,
 )
 
 
@@ -94,7 +95,7 @@ def handler(event, context):
             "message": "mentor parameter missing",
         }
         return create_json_response(401, data, event)
-
+    auth_headers = get_auth_headers(event)
     mentor = thumbnail_request["mentor"]
     token = json.loads(event["requestContext"]["authorizer"]["token"])
     if not is_authorized(mentor, token):
@@ -112,7 +113,8 @@ def handler(event, context):
         ExtraArgs={"ContentType": "image/png"},
     )
     mentor_thumbnail_update(
-        MentorThumbnailUpdateRequest(mentor=mentor, thumbnail=thumbnail_path)
+        MentorThumbnailUpdateRequest(mentor=mentor, thumbnail=thumbnail_path),
+        auth_headers,
     )
     static_url_base = require_env("STATIC_URL_BASE")
     data = {"data": {"thumbnail": urljoin(static_url_base, thumbnail_path)}}

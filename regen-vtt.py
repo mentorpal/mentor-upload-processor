@@ -6,7 +6,7 @@ from module.api import fetch_answer_transcript_and_media
 from media_tools import transcript_to_vtt
 import boto3
 from module.logger import get_logger
-from module.utils import create_json_response, s3_bucket, load_sentry
+from module.utils import create_json_response, s3_bucket, load_sentry, get_auth_headers
 
 s3 = boto3.client("s3")
 
@@ -39,6 +39,7 @@ def handler(event, context):
             "message": "question parameter missing",
         }
         return create_json_response(401, data, event)
+    auth_headers = get_auth_headers(event)
     mentor = regen_vtt_request["mentor"]
     question = regen_vtt_request["question"]
     with tempfile.TemporaryDirectory() as tmp_dir:
@@ -46,7 +47,7 @@ def handler(event, context):
         (
             transcript,
             video_media,
-        ) = fetch_answer_transcript_and_media(mentor, question)
+        ) = fetch_answer_transcript_and_media(mentor, question, auth_headers)
         transcript_to_vtt(video_media["url"], vtt_file_path, transcript)
         if os.path.isfile(vtt_file_path):
             item_path = f"videos/{mentor}/{question}/en.vtt"

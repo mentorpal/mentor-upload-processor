@@ -7,7 +7,7 @@
 from dataclasses import dataclass
 import json
 from os import environ
-from typing import TypedDict, List
+from typing import TypedDict, List, Dict
 import requests
 from module.logger import get_logger
 import jsonschema
@@ -18,10 +18,6 @@ log = get_logger("graphql-api")
 
 def get_graphql_endpoint() -> str:
     return environ.get("GRAPHQL_ENDPOINT") or "http://graphql/graphql"
-
-
-def get_api_key() -> str:
-    return environ.get("API_SECRET") or ""
 
 
 @dataclass
@@ -304,8 +300,7 @@ def fetch_task_gql(mentor_id: str, question_id) -> GQLQueryBody:
     }
 
 
-def fetch_task(mentor_id: str, question_id) -> dict:
-    headers = {"mentor-graphql-req": "true", "Authorization": f"bearer {get_api_key()}"}
+def fetch_task(mentor_id: str, question_id, headers: Dict[str, str] = {}) -> dict:
     body = fetch_task_gql(mentor_id, question_id)
     res = requests.post(get_graphql_endpoint(), json=body, headers=headers)
     res.raise_for_status()
@@ -315,8 +310,7 @@ def fetch_task(mentor_id: str, question_id) -> dict:
     return tdjson["data"]["uploadTask"]
 
 
-def fetch_question_name(question_id: str) -> str:
-    headers = {"mentor-graphql-req": "true", "Authorization": f"bearer {get_api_key()}"}
+def fetch_question_name(question_id: str, headers: Dict[str, str] = {}) -> str:
     body = fetch_question_name_gql(question_id)
     res = requests.post(get_graphql_endpoint(), json=body, headers=headers)
     res.raise_for_status()
@@ -418,9 +412,10 @@ def upload_answer_and_task_status_req_gql(
 
 
 def upload_answer_and_task_status_update(
-    answer_req: AnswerUpdateRequest, status_req: UpdateTaskStatusRequest
+    answer_req: AnswerUpdateRequest,
+    status_req: UpdateTaskStatusRequest,
+    headers: Dict[str, str] = {},
 ) -> None:
-    headers = {"mentor-graphql-req": "true", "Authorization": f"bearer {get_api_key()}"}
     body = upload_answer_and_task_status_req_gql(answer_req, status_req)
     res = requests.post(get_graphql_endpoint(), json=body, headers=headers)
     res.raise_for_status()
@@ -429,8 +424,9 @@ def upload_answer_and_task_status_update(
         raise Exception(json.dumps(tdjson.get("errors")))
 
 
-def upload_task_status_update(req: UpdateTaskStatusRequest) -> None:
-    headers = {"mentor-graphql-req": "true", "Authorization": f"bearer {get_api_key()}"}
+def upload_task_status_update(
+    req: UpdateTaskStatusRequest, headers: Dict[str, str] = {}
+) -> None:
     body = upload_task_status_req_gql(req)
     res = requests.post(get_graphql_endpoint(), json=body, headers=headers)
     res.raise_for_status()
@@ -450,14 +446,14 @@ def fetch_upload_task_gql(req: FetchUploadTaskReq) -> GQLQueryBody:
     }
 
 
-def is_upload_in_progress(req: FetchUploadTaskReq) -> bool:
-    headers = {"mentor-graphql-req": "true", "Authorization": f"bearer {get_api_key()}"}
+def is_upload_in_progress(
+    req: FetchUploadTaskReq, headers: Dict[str, str] = {}
+) -> bool:
     body = fetch_upload_task_gql(req)
     log.debug(body)
     res = requests.post(get_graphql_endpoint(), json=body, headers=headers)
     res.raise_for_status()
     tdjson = res.json()
-    # TODO validate_json(tdjson, fetch_upload_task_schema)
     if "errors" in tdjson:
         raise Exception(json.dumps(tdjson.get("errors")))
     return bool(tdjson["data"]["uploadTask"])
@@ -474,8 +470,9 @@ def thumbnail_update_gql(req: MentorThumbnailUpdateRequest) -> GQLQueryBody:
     }
 
 
-def mentor_thumbnail_update(req: MentorThumbnailUpdateRequest) -> None:
-    headers = {"mentor-graphql-req": "true", "Authorization": f"bearer {get_api_key()}"}
+def mentor_thumbnail_update(
+    req: MentorThumbnailUpdateRequest, headers: Dict[str, str] = {}
+) -> None:
     body = thumbnail_update_gql(req)
     log.debug(body)
     res = requests.post(get_graphql_endpoint(), json=body, headers=headers)
@@ -496,8 +493,9 @@ def vbg_update_gql(req: MentorVbgUpdateRequest) -> GQLQueryBody:
     }
 
 
-def mentor_vbg_update(req: MentorVbgUpdateRequest) -> None:
-    headers = {"mentor-graphql-req": "true", "Authorization": f"bearer {get_api_key()}"}
+def mentor_vbg_update(
+    req: MentorVbgUpdateRequest, headers: Dict[str, str] = {}
+) -> None:
     body = vbg_update_gql(req)
     log.debug(body)
     res = requests.post(get_graphql_endpoint(), json=body, headers=headers)
@@ -524,8 +522,9 @@ def import_task_create_gql_query(req: ImportTaskGQLRequest) -> GQLQueryBody:
     }
 
 
-def import_task_create_gql(req: ImportTaskGQLRequest) -> None:
-    headers = {"mentor-graphql-req": "true", "Authorization": f"bearer {get_api_key()}"}
+def import_task_create_gql(
+    req: ImportTaskGQLRequest, headers: Dict[str, str] = {}
+) -> None:
     body = import_task_create_gql_query(req)
     res = requests.post(get_graphql_endpoint(), json=body, headers=headers)
     res.raise_for_status()
@@ -702,8 +701,9 @@ def import_mentor_gql_query(req: ImportMentorGQLRequest) -> GQLQueryBody:
     }
 
 
-def import_task_update_gql(req: ImportTaskGQLRequest) -> None:
-    headers = {"mentor-graphql-req": "true", "Authorization": f"bearer {get_api_key()}"}
+def import_task_update_gql(
+    req: ImportTaskGQLRequest, headers: Dict[str, str] = {}
+) -> None:
     body = import_task_update_gql_query(req)
     res = requests.post(get_graphql_endpoint(), json=body, headers=headers)
     res.raise_for_status()
@@ -771,8 +771,9 @@ def update_answers_gql_query(req: UpdateAnswersGQLRequest) -> GQLQueryBody:
     }
 
 
-def update_answers_gql(req: UpdateAnswersGQLRequest) -> None:
-    headers = {"mentor-graphql-req": "true", "Authorization": f"bearer {get_api_key()}"}
+def update_answers_gql(
+    req: UpdateAnswersGQLRequest, headers: Dict[str, str] = {}
+) -> None:
     body = update_answers_gql_query(req)
     res = requests.post(get_graphql_endpoint(), json=body, headers=headers)
     log.error(res.json())
@@ -799,16 +800,6 @@ def media_update_gql(req: MediaUpdateRequest) -> GQLQueryBody:
         }""",
         "variables": variables,
     }
-
-
-def update_media(req: MediaUpdateRequest) -> None:
-    headers = {"mentor-graphql-req": "true", "Authorization": f"bearer {get_api_key()}"}
-    body = media_update_gql(req)
-    res = requests.post(get_graphql_endpoint(), json=body, headers=headers)
-    res.raise_for_status()
-    tdjson = res.json()
-    if "errors" in tdjson:
-        raise Exception(json.dumps(tdjson.get("errors")))
 
 
 def validate_json(json_data, json_schema):
@@ -861,8 +852,9 @@ def get_media_list_from_answer_gql(answer_gql):
     return media_list
 
 
-def import_mentor_gql(req: ImportMentorGQLRequest) -> MentorImportGQLResponse:
-    headers = {"mentor-graphql-req": "true", "Authorization": f"bearer {get_api_key()}"}
+def import_mentor_gql(
+    req: ImportMentorGQLRequest, headers: Dict[str, str] = {}
+) -> MentorImportGQLResponse:
     query = import_mentor_gql_query(req)
     res = exec_graphql_with_json_validation(
         query, import_mentor_gql_response_schema, headers=headers
@@ -920,8 +912,9 @@ def upload_answer_update_gql(answer_req: AnswerUpdateRequest) -> GQLQueryBody:
     }
 
 
-def upload_answer_update(answer_req: AnswerUpdateRequest) -> None:
-    headers = {"mentor-graphql-req": "true", "Authorization": f"bearer {get_api_key()}"}
+def upload_answer_update(
+    answer_req: AnswerUpdateRequest, headers: Dict[str, str] = {}
+) -> None:
     body = upload_answer_update_gql(answer_req)
     res = requests.post(get_graphql_endpoint(), json=body, headers=headers)
     res.raise_for_status()
@@ -963,9 +956,10 @@ def upload_answer_and_task_req_gql(
 
 
 def upload_answer_and_task_update(
-    answer_req: AnswerUpdateRequest, task_req: UploadTaskRequest
+    answer_req: AnswerUpdateRequest,
+    task_req: UploadTaskRequest,
+    headers: Dict[str, str] = {},
 ) -> None:
-    headers = {"mentor-graphql-req": "true", "Authorization": f"bearer {get_api_key()}"}
     body = upload_answer_and_task_req_gql(answer_req, task_req)
     res = requests.post(get_graphql_endpoint(), json=body, headers=headers)
     res.raise_for_status()
@@ -1032,8 +1026,9 @@ def fetch_answer_transcript_and_media_gql(mentor: str, question: str) -> GQLQuer
     }
 
 
-def fetch_answer_transcript_and_media(mentor: str, question: str):
-    headers = {"mentor-graphql-req": "true", "Authorization": f"bearer {get_api_key()}"}
+def fetch_answer_transcript_and_media(
+    mentor: str, question: str, headers: Dict[str, str] = {}
+):
     gql_query = fetch_answer_transcript_and_media_gql(mentor, question)
     json_res = exec_graphql_with_json_validation(
         gql_query, fetch_answer_transcript_media_json_schema, headers=headers

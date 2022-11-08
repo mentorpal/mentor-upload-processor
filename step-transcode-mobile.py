@@ -20,11 +20,7 @@ from module.api import (
     upload_task_status_update,
     upload_answer_and_task_status_update,
 )
-from module.utils import (
-    s3_bucket,
-    load_sentry,
-    fetch_from_graphql,
-)
+from module.utils import s3_bucket, load_sentry, fetch_from_graphql
 from module.constants import Supported_Video_Type, MP4, WEBM_VP9
 
 load_sentry()
@@ -62,9 +58,11 @@ def transcode_mobile(video_file, video_file_type: Supported_Video_Type, s3_path)
 
 
 def process_task(request):
+
     log.info("video to process %s", request["video"])
+    auth_headers = request["authHeaders"]
     stored_task = fetch_from_graphql(
-        request["mentor"], request["question"], "transcodeMobileTask"
+        request["mentor"], request["question"], "transcodeMobileTask", auth_headers
     )
     if not stored_task:
         log.warn("task not found, skipping transcode")
@@ -104,7 +102,8 @@ def process_task(request):
                 mentor=request["mentor"],
                 question=request["question"],
                 transcode_mobile_task={"status": "IN_PROGRESS"},
-            )
+            ),
+            auth_headers,
         )
 
         transcode_mobile(work_file, desired_video_file_type, s3_path)
@@ -130,6 +129,7 @@ def process_task(request):
                 transcode_mobile_task={"status": "DONE"},
                 mobile_media=mobile_media,
             ),
+            auth_headers,
         )
 
 

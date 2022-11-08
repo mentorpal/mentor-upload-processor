@@ -9,6 +9,7 @@ import boto3
 import botocore
 import tempfile
 import os
+from typing import Dict
 from module.logger import get_logger
 from module.api import (
     AnswerUpdateRequest,
@@ -20,6 +21,7 @@ from module.utils import (
     load_sentry,
     require_env,
     fetch_from_graphql,
+    get_auth_headers,
 )
 
 
@@ -30,7 +32,9 @@ aws_region = require_env("REGION")
 sfn_client = boto3.client("stepfunctions", region_name=aws_region)
 
 
-def process_event(record, mentor, question, stored_task):
+def process_event(
+    record, mentor, question, stored_task, auth_headers: Dict[str, str] = {}
+):
     key = record["s3"]["object"]["key"]
     s3_path = os.path.dirname(key)
 
@@ -70,6 +74,7 @@ def process_event(record, mentor, question, stored_task):
                     transcript=transcript,
                     transcribe_task={"status": "DONE"},
                 ),
+                auth_headers,
             )
             sfn_client.send_task_success(taskToken=stored_task["payload"], output="{}")
 
@@ -112,6 +117,7 @@ def process_event(record, mentor, question, stored_task):
                 transcribe_task={"status": "DONE"},
                 vtt_media=vtt_media,
             ),
+            auth_headers,
         )
         sfn_client.send_task_success(taskToken=stored_task["payload"], output="{}")
 
@@ -123,6 +129,7 @@ def handler(event, context):
     won't be able to continue execution.
     """
     log.info(event)
+    auth_headers = get_auth_headers(event)
     for record in event["Records"]:
         key = record["s3"]["object"]["key"]
         s3_path = os.path.dirname(key)
@@ -139,7 +146,7 @@ def handler(event, context):
             return
 
         try:
-            process_event(record, mentor, question, stored_task)
+            process_event(record, mentor, question, stored_task, auth_headers)
         except Exception as err:
             log.error(err)
             sfn_client.send_task_failure(
