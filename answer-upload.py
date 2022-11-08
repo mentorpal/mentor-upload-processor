@@ -30,7 +30,6 @@ from module.api import (
     upload_answer_update,
 )
 from module.logger import get_logger
-from typing import Dict
 
 
 load_sentry()
