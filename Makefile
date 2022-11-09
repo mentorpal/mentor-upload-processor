@@ -23,9 +23,9 @@ license-deploy: node_modules/license-check-and-add LICENSE LICENSE_HEADER
 test-unit:
 # envvars required:
 	S3_STATIC_ARN=arn:aws:s3:::bucket-name JWT_SECRET=secret REGION=us-east-1 \
-	 python -m py.test -vv test/unit
+	 python -m pytest -vv test/unit
 
 .PHONY: test-integration
 test-integration:
 # envvars injected by the cicd pipeline
-	python -m py.test -vv test/integration
+	python -m pytest -vv test/integration
