@@ -45,7 +45,6 @@ custom:
       # in effect prevent sls from catching errors (missing variable in ssm)!
       S3_STATIC_ARN: ${ssm:/mentorpal/newdev/s3_static_arn, ''}
       GRAPHQL_ENDPOINT: https://api-dev.mentorpal.org/graphql/graphql
-      API_SECRET: ${ssm:/mentorpal/newdev/shared/api_secret, ''}
       JWT_SECRET: ${ssm:/mentorpal/newdev/shared/jwt_secret, ''}
       STATIC_URL_BASE: ${ssm:/mentorpal/newdev/shared/static_url_base, ''}
       ALERT_SNS_ARN: 'no alerts in dev'
@@ -55,7 +54,6 @@ custom:
       LOG_LEVEL: DEBUG
       IS_SENTRY_ENABLED: true
       GRAPHQL_ENDPOINT: https://api-qa.mentorpal.org/graphql/graphql
-      API_SECRET: ${ssm:/mentorpal/v2/shared/api_secret, ''}
       JWT_SECRET: ${ssm:/mentorpal/v2/shared/jwt_secret, ''}
       STATIC_URL_BASE: ${ssm:/mentorpal/v2/shared/static_url_base, ''}
       ALERT_SNS_ARN: ${ssm:/mentorpal/v2/shared/sns_alert_topic_arn, ''}
@@ -65,7 +63,6 @@ custom:
       IS_SENTRY_ENABLED: true
       GRAPHQL_ENDPOINT: https://api.mentorpal.org/graphql/graphql
       S3_STATIC_ARN: ${ssm:/mentorpal/cf/s3_static_arn, ''}
-      API_SECRET: ${ssm:/mentorpal/cf/shared/api_secret, ''}
       JWT_SECRET: ${ssm:/mentorpal/cf/shared/jwt_secret, ''}
       ALERT_SNS_ARN: ${ssm:/mentorpal/cf/shared/sns_alert_topic_arn, ''}
       STATIC_URL_BASE: ${ssm:/mentorpal/cf/shared/static_url_base, ''}
@@ -124,7 +121,6 @@ provider:
     FFMPEG_EXECUTABLE: /opt/ffmpeg/ffmpeg
     FFPROBE_EXECUTABLE: /opt/ffmpeg/ffprobe
     GRAPHQL_ENDPOINT: ${self:custom.stages.${self:provider.stage}.GRAPHQL_ENDPOINT}
-    API_SECRET: ${self:custom.stages.${self:provider.stage}.API_SECRET}
     IS_SENTRY_ENABLED: ${self:custom.stages.${self:provider.stage}.IS_SENTRY_ENABLED}
     STATIC_URL_BASE: ${self:custom.stages.${self:provider.stage}.STATIC_URL_BASE}
     SENTRY_DSN_MENTOR_UPLOAD: '${ssm:/mentorpal/upload/sentry_dsn}'

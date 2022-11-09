@@ -2,7 +2,6 @@ version: 0.2
 
 env:
   parameter-store:
-    API_SECRET: /mentorpal/v2/shared/api_secret
     JWT_SECRET: /mentorpal/v2/shared/jwt_secret
     S3_STATIC_ARN: /mentorpal/v2/s3_static_arn
   # the rest can safely be hard-coded:

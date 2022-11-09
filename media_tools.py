@@ -334,7 +334,7 @@ def video_to_audio(
         executable=FFMPEG_EXECUTABLE,
     )
     ff.run()
-    log.debug(ff)
+    # log.debug(ff)
     return output_file
 
 

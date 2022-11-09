@@ -9,6 +9,7 @@ import tempfile
 import os
 from module.logger import get_logger
 import uuid
+import json, tempfile
 from media_tools import video_to_audio, has_audio
 from module.utils import (
     s3_bucket,
@@ -39,7 +40,7 @@ def is_idle_question(question_id: str, headers: Dict[str, str] = {}) -> bool:
     return name == "_IDLE_"
 
 
-def transcribe_video(mentor, question, task_id, video_file, task_token):
+def transcribe_video(mentor, question, task_id, video_file, task_token, auth_headers):
     if not has_audio(video_file):  # this does not work on mac :/
         log.warn("video file does not contain any audio streams")
         sfn_client.send_task_success(taskToken=task_token, output="{}")
@@ -55,6 +56,19 @@ def transcribe_video(mentor, question, task_id, video_file, task_token):
             input_s3_path,
             ExtraArgs={"ContentType": "audio/mp3"},
         )
+
+        # Add auth header file to output bucket
+        auth_header_file = tempfile.NamedTemporaryFile(mode="w+")
+        json.dump(auth_headers, auth_header_file)
+        auth_header_file.flush()
+        s3.upload_file(
+            auth_header_file.name,
+            output_bucket,
+            f"{mentor}/{question}/{task_id}/auth_headers.json",
+            ExtraArgs={"ContentType": "application/json"},
+        )
+
+        # Start transcription job
         job = transcribe.start_transcription_job(
             TranscriptionJobName=f"{mentor}_{question}_{task_id}_{uuid.uuid4()}",  # make sure job id is unique
             LanguageCode="en-US",
@@ -127,6 +141,7 @@ def process_task(request, task, task_token):
             task["task_id"],
             work_file,
             task_token,
+            auth_headers,
         )
 
 

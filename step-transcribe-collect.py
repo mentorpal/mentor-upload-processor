@@ -21,7 +21,6 @@ from module.utils import (
     load_sentry,
     require_env,
     fetch_from_graphql,
-    get_auth_headers,
 )
 
 
@@ -42,6 +41,7 @@ def process_event(
         # since 2 files get dropped, there're 2 lambda invocations
         # its possible that not both files are in s3 when lambda runs for the first time
 
+        # try to get
         try:
             job_file = os.path.join(work_dir, "transcribe.json")
             s3.download_file(
@@ -128,13 +128,31 @@ def handler(event, context):
     execution status back to the Step Function, otherwise the Step Function
     won't be able to continue execution.
     """
+    # first get auth headers file from bucket
     log.info(event)
-    auth_headers = get_auth_headers(event)
     for record in event["Records"]:
         key = record["s3"]["object"]["key"]
         s3_path = os.path.dirname(key)
+        with tempfile.TemporaryDirectory() as work_dir:
+            try:
+                auth_file = os.path.join(work_dir, "auth_headers.json")
+                s3.download_file(
+                    record["s3"]["bucket"]["name"],
+                    f"{s3_path}/auth_headers.json",
+                    auth_file,
+                )
+            except botocore.exceptions.ClientError as e:
+                # https://boto3.amazonaws.com/v1/documentation/api/latest/guide/error-handling.html
+                if e.response["Error"]["Code"] == "404":
+                    log.info("failed to fetch auth headers json file from bucket")
+                    return
+                raise e
+            with open(auth_file, "r") as f:
+                auth_headers = json.loads(f.read())
         [mentor, question, *_] = s3_path.split("/")
-        stored_task = fetch_from_graphql(mentor, question, task_name="transcribeTask")
+        stored_task = fetch_from_graphql(
+            mentor, question, "transcribeTask", auth_headers
+        )
         if not stored_task:
             log.warn(
                 "task not found, cannot continue! step function will have to timeout"

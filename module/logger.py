@@ -47,7 +47,7 @@ class JSONFormatter(logging.Formatter):
 
     def format(self, record):
         payload = self.to_payload(record)
-        return json.dumps(payload)
+        return json.dumps(payload, default=str)
 
 
 log_level = os.environ.get("LOG_LEVEL", "DEBUG")
