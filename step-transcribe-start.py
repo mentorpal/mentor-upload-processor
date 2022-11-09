@@ -9,7 +9,7 @@ import tempfile
 import os
 from module.logger import get_logger
 import uuid
-import json, tempfile
+import json
 from media_tools import video_to_audio, has_audio
 from module.utils import (
     s3_bucket,
