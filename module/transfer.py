@@ -265,8 +265,9 @@ def transfer_mentor_videos_in_parellel(answer, mentor, s3_client, s3_bucket):
         logging.error(f"another video DONE for {mentor}")
 
 
-def process_transfer_mentor(s3_client, s3_bucket, req: ProcessTransferMentor):
-    auth_headers = json.loads(req.get("authHeaders"))
+def process_transfer_mentor(
+    s3_client, s3_bucket, req: ProcessTransferMentor, auth_headers
+):
     mentor = req.get("mentor")
     mentor_export_json = req.get("mentorExportJson")
     replaced_mentor_data_changes = req.get("replacedMentorDataChanges")

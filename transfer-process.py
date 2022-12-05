@@ -36,8 +36,9 @@ def handler(event, context):
     log.debug("records to process: %s", len(records))
     for record in records:
         payload = b64decode(record["dynamodb"]["NewImage"]["payload"]["B"])  # binary
+        auth_headers = json.loads(record["dynamodb"]["NewImage"]["authHeaders"]["S"])
         request = json.loads(gzip.decompress(payload).decode("utf-8"))
-        process_transfer_mentor(s3_client, s3_bucket, request)
+        process_transfer_mentor(s3_client, s3_bucket, request, auth_headers)
 
 
 # # for local debugging:
