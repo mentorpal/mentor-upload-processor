@@ -8,7 +8,6 @@ import queue
 from threading import Thread
 import urllib.request
 from os import remove
-import json
 
 from .api import (
     ImportMentorGQLRequest,
