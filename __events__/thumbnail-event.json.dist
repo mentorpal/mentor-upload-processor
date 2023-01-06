@@ -5,7 +5,7 @@
   "headers": {
     "Accept": "*/*",
     "Content-Type": "multipart/form-data; boundary=------------------------33e3c736f22908eb",
-    "Host": "api-dev.mentorpal.org",
+    "Host": "api.devmentorpal.org",
     "User-Agent": "curl/7.71.1",
     "X-Amzn-Trace-Id": "Root=1-6270d787-04caf3886bb767614d4eb700",
     "X-Forwarded-For": "31.164.106.239",
@@ -20,7 +20,7 @@
       "multipart/form-data; boundary=------------------------33e3c736f22908eb"
     ],
     "Host": [
-      "api-dev.mentorpal.org"
+      "api.devmentorpal.org"
     ],
     "User-Agent": [
       "curl/7.71.1"
@@ -56,7 +56,7 @@
     "accountId": "100000000655",
     "protocol": "HTTP/1.1",
     "stage": "dev",
-    "domainPrefix": "api-dev",
+    "domainPrefix": "api",
     "requestTimeEpoch": 1651562375876,
     "requestId": "0fb72ca6-6d3c-4209-abb7-14a13dea5d15",
     "identity": {
@@ -73,7 +73,7 @@
       "userAgent": "curl/7.71.1",
       "user": null
     },
-    "domainName": "api-dev.mentorpal.org",
+    "domainName": "api.devmentorpal.org",
     "apiId": "61rjvih68f"
   },
   "isBase64Encoded": true,

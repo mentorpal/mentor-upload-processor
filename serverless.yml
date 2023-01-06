@@ -44,7 +44,7 @@ custom:
       # That's why we provide an empty default value '', but this
       # in effect prevent sls from catching errors (missing variable in ssm)!
       S3_STATIC_ARN: ${ssm:/mentorpal/newdev/s3_static_arn, ''}
-      GRAPHQL_ENDPOINT: https://api-dev.mentorpal.org/graphql/graphql
+      GRAPHQL_ENDPOINT: https://api.devmentorpal.org/graphql/graphql
       JWT_SECRET: ${ssm:/mentorpal/newdev/shared/jwt_secret, ''}
       STATIC_URL_BASE: ${ssm:/mentorpal/newdev/shared/static_url_base, ''}
       ALERT_SNS_ARN: 'no alerts in dev'
@@ -53,7 +53,7 @@ custom:
       S3_STATIC_ARN: ${ssm:/mentorpal/v2/s3_static_arn, ''}
       LOG_LEVEL: DEBUG
       IS_SENTRY_ENABLED: true
-      GRAPHQL_ENDPOINT: https://api-qa.mentorpal.org/graphql/graphql
+      GRAPHQL_ENDPOINT: https://api.qamentorpal.org/graphql/graphql
       JWT_SECRET: ${ssm:/mentorpal/v2/shared/jwt_secret, ''}
       STATIC_URL_BASE: ${ssm:/mentorpal/v2/shared/static_url_base, ''}
       ALERT_SNS_ARN: ${ssm:/mentorpal/v2/shared/sns_alert_topic_arn, ''}
