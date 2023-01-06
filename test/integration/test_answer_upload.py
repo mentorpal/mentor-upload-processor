@@ -23,7 +23,7 @@ def remove_task_status(mentorId, questionId, headers):
         """,
     }
     response = requests.post(
-        "https://api-qa.mentorpal.org/graphql/graphql",  # TODO
+        "https://api.qamentorpal.org/graphql/graphql",  # TODO
         headers=headers,
         data=json.dumps(gql),
     )
@@ -113,7 +113,7 @@ def test_successful_upload():
     headers["Content-Type"] = "application/json"
     while True:
         response = requests.post(
-            "https://api-qa.mentorpal.org/graphql/graphql",  # TODO
+            "https://api.qamentorpal.org/graphql/graphql",  # TODO
             headers=headers,
             data=json.dumps(gql),
         )

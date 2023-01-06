@@ -11,8 +11,8 @@ env:
     IS_SENTRY_ENABLED: false
     PYTHON_ENV: careerfair-qa
     REGION: us-east-1
-    GRAPHQL_ENDPOINT: https://api-qa.mentorpal.org/graphql/graphql
-    UPLOAD_ENDPOINT: https://api-qa.mentorpal.org/upload
+    GRAPHQL_ENDPOINT: https://api.qamentorpal.org/graphql/graphql
+    UPLOAD_ENDPOINT: https://api.qamentorpal.org/upload
     STATIC_URL_BASE: https://static-v2.mentorpal.org/
     JOBS_TABLE_NAME: upload-jobs-qa
     FFMPEG_EXECUTABLE: /opt/ffmpeg/ffmpeg
