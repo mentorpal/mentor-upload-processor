@@ -84,6 +84,19 @@ class MentorVbgUpdateRequest:
 
 
 @dataclass
+class OrgHeaderUpdateRequest:
+    imgPath: str
+    orgId: str = None
+
+
+@dataclass
+class OrgFooterUpdateRequest:
+    imgPath: str
+    imgIdx: int
+    orgId: str = None
+
+
+@dataclass
 class FetchUploadTaskReq:
     mentor: str
     question: str
@@ -497,6 +510,58 @@ def mentor_vbg_update(
     req: MentorVbgUpdateRequest, headers: Dict[str, str] = {}
 ) -> None:
     body = vbg_update_gql(req)
+    log.debug(body)
+    res = requests.post(get_graphql_endpoint(), json=body, headers=headers)
+    res.raise_for_status()
+    tdjson = res.json()
+    if "errors" in tdjson:
+        raise Exception(json.dumps(tdjson.get("errors")))
+
+
+def org_header_update_gql(req: OrgHeaderUpdateRequest) -> GQLQueryBody:
+    variables = {"imgPath": req.imgPath}
+    if req.orgId:
+        variables["orgId"] = req.orgId
+    return {
+        "query": """mutation OrgHeaderUpdate($orgId: ID, $imgPath: String!) {
+          api {
+            orgHeaderUpdate(orgId: $orgId, imgPath: $imgPath)
+          }
+        }""",
+        "variables": variables,
+    }
+
+
+def org_header_update(
+    req: OrgHeaderUpdateRequest, headers: Dict[str, str] = {}
+) -> None:
+    body = org_header_update_gql(req)
+    log.debug(body)
+    res = requests.post(get_graphql_endpoint(), json=body, headers=headers)
+    res.raise_for_status()
+    tdjson = res.json()
+    if "errors" in tdjson:
+        raise Exception(json.dumps(tdjson.get("errors")))
+
+
+def org_footer_update_gql(req: OrgFooterUpdateRequest) -> GQLQueryBody:
+    variables = {"imgPath": req.imgPath, "imgIdx": req.imgIdx}
+    if req.orgId:
+        variables["orgId"] = req.orgId
+    return {
+        "query": """mutation OrgFooterUpdate($orgId: ID, $imgPath: String!, $imgIdx: Int!) {
+          api {
+            orgFooterUpdate(orgId: $orgId, imgPath: $imgPath, imgIdx: $imgIdx)
+          }
+        }""",
+        "variables": variables,
+    }
+
+
+def org_footer_update(
+    req: OrgFooterUpdateRequest, headers: Dict[str, str] = {}
+) -> None:
+    body = org_footer_update_gql(req)
     log.debug(body)
     res = requests.post(get_graphql_endpoint(), json=body, headers=headers)
     res.raise_for_status()

@@ -218,6 +218,36 @@ functions:
             identitySource: method.request.header.Authorization
             type: token
 
+  http_header:
+    handler: header_upload.handler
+    memorySize: 1024
+    timeout: 30 # 30sec is max for http requests
+    events:
+      - http:
+          path: /header
+          method: post
+          cors: true
+          authorizer:
+            name: authorizer_func
+            resultTtlInSeconds: 300
+            identitySource: method.request.header.Authorization
+            type: token
+
+  http_footer:
+    handler: footer_upload.handler
+    memorySize: 1024
+    timeout: 30 # 30sec is max for http requests
+    events:
+      - http:
+          path: /footer
+          method: post
+          cors: true
+          authorizer:
+            name: authorizer_func
+            resultTtlInSeconds: 300
+            identitySource: method.request.header.Authorization
+            type: token
+
   http_vbg:
     handler: vbg_upload.handler
     memorySize: 1024
