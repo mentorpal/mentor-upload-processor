@@ -82,13 +82,14 @@ def handler(event, context):
     org = img_request["org"]
     idx = img_request["idx"]
     token = json.loads(event["requestContext"]["authorizer"]["token"])
-    if org and not is_authorized_for_org(org, token):
-        data = {
-            "error": "not authorized",
-            "message": "not authorized",
-        }
-        return create_json_response(401, data, event)
-    if not org and not is_authorized("", token):
+    if org:
+        if not is_authorized_for_org(org, token):
+            data = {
+                "error": "not authorized",
+                "message": "not authorized",
+            }
+            return create_json_response(401, data, event)
+    else if not is_authorized("", token):
         data = {
             "error": "not authorized",
             "message": "not authorized",
