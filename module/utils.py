@@ -59,8 +59,19 @@ def is_authorized(mentor, token):
     return (
         token["role"] == "CONTENT_MANAGER"
         or token["role"] == "ADMIN"
+        or token["role"] == "SUPER_CONTENT_MANAGER"
+        or token["role"] == "SUPER_ADMIN"
         or mentor in token["mentorIds"]
     )
+
+
+def is_authorized_for_org(org, token):
+    if token["role"] == "SUPER_CONTENT_MANAGER" or token["role"] == "SUPER_ADMIN":
+        return True
+    for member in org["members"]:
+        if member["user"]["_id"] == token["id"]:
+            return (member["role"] == "CONTENT_MANAGER" or member["role"] == "ADMIN")
+    return False
 
 
 def create_json_response(status, data, event, headers={}):
