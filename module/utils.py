@@ -70,7 +70,7 @@ def is_authorized_for_org(org, token):
         return True
     for member in org["members"]:
         if member["user"]["_id"] == token["id"]:
-            return (member["role"] == "CONTENT_MANAGER" or member["role"] == "ADMIN")
+            return member["role"] == "CONTENT_MANAGER" or member["role"] == "ADMIN"
     return False
 
 

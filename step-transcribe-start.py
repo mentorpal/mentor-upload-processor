@@ -42,7 +42,7 @@ def is_idle_question(question_id: str, headers: Dict[str, str] = {}) -> bool:
 
 def transcribe_video(mentor, question, task_id, video_file, task_token, auth_headers):
     if not has_audio(video_file):  # this does not work on mac :/
-        log.warn("video file does not contain any audio streams")
+        log.warning("video file does not contain any audio streams")
         sfn_client.send_task_success(taskToken=task_token, output="{}")
         # continue to overwrite any existing previous transcript
     else:
@@ -94,7 +94,7 @@ def process_task(request, task, task_token):
         request["mentor"], request["question"], "transcribeTask", auth_headers
     )
     if not stored_task:
-        log.warn("task not found, skipping transcription")
+        log.warning("task not found, skipping transcription")
         sfn_client.send_task_success(taskToken=task_token, output="{}")
         return
     if stored_task["status"].startswith("CANCEL"):

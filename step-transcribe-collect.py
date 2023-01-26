@@ -154,7 +154,7 @@ def handler(event, context):
             mentor, question, "transcribeTask", auth_headers
         )
         if not stored_task:
-            log.warn(
+            log.warning(
                 "task not found, cannot continue! step function will have to timeout"
             )
             return
