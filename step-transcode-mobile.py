@@ -65,7 +65,7 @@ def process_task(request):
         request["mentor"], request["question"], "transcodeMobileTask", auth_headers
     )
     if not stored_task:
-        log.warn("task not found, skipping transcode")
+        log.warning("task not found, skipping transcode")
         return
 
     if stored_task["status"].startswith("CANCEL"):

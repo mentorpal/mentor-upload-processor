@@ -3,10 +3,10 @@
   "version": "1.0.0",
   "description": "Serverless video upload processor",
   "devDependencies": {
-    "serverless": "^3.22.0",
+    "serverless": "^3.27.0",
     "serverless-deployment-bucket": "^1.6.0",
-    "serverless-domain-manager": "^6.1.0",
-    "serverless-layers": "^2.5.4"
+    "serverless-domain-manager": "^6.2.1",
+    "serverless-layers": "^2.6.1"
   },
   "scripts": {
     "deploy:dev": "sls deploy -s dev --region us-east-1",

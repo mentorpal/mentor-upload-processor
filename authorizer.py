@@ -43,7 +43,7 @@ def extract_token_from_header(request):
     token_authentication = bearer_token.lower().startswith("bearer")
     token_split = bearer_token.split(" ")
     if not token_authentication or len(token_split) == 1:
-        log.warn(bearer_token)
+        log.warning(bearer_token)
         raise Exception("no authentication token provided")
     token = token_split[1]
     try:

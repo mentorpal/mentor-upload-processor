@@ -103,7 +103,9 @@ def handler(event, context):
         image_path = f"images/{datetime.utcnow().strftime('%Y%m%dT%H%M%SZ')}/header.png"
     else:
         orgId = org["_id"]
-        image_path = f"images/{orgId}/{datetime.utcnow().strftime('%Y%m%dT%H%M%SZ')}/header.png"
+        image_path = (
+            f"images/{orgId}/{datetime.utcnow().strftime('%Y%m%dT%H%M%SZ')}/header.png"
+        )
     s3_client.upload_fileobj(
         form_data["image"].file,
         s3_bucket,
@@ -122,7 +124,5 @@ def handler(event, context):
             OrgHeaderUpdateRequest(orgId=org["_id"], imgPath=image_url),
             auth_headers,
         )
-    data = {
-        "data": {"image": image_url}
-    }
+    data = {"data": {"image": image_url}}
     return create_json_response(200, data, event)

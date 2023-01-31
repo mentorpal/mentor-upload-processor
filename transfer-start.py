@@ -52,7 +52,7 @@ def handler(event, context):
     try:
         validate(instance=transfer_request, schema=transfer_mentor_json_schema)
     except ValidationError as err:
-        log.warn(err)
+        log.warning(err)
         data = {
             "error": "Bad Request",
             "message": f"invalid payload: {err}",
