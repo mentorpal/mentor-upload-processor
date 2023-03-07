@@ -43,14 +43,14 @@ custom:
       # it cannot resolve other env variables from ssm.
       # That's why we provide an empty default value '', but this
       # in effect prevent sls from catching errors (missing variable in ssm)!
-      S3_STATIC_ARN: ${ssm:/mentorpal/newdev/s3_static_arn, ''}
+      S3_STATIC_ARN: ${ssm:/devmentorpal/s3_static_arn, ''}
       GRAPHQL_ENDPOINT: https://api.devmentorpal.org/graphql/graphql
       JWT_SECRET: ${ssm:/mentorpal/newdev/shared/jwt_secret, ''}
       STATIC_URL_BASE: ${ssm:/mentorpal/newdev/shared/static_url_base, ''}
       ALERT_SNS_ARN: 'no alerts in dev'
       WEBACL_ARN: ${ssm:/mentorpal/newdev/api_firewall_arn, ''}
     qa:
-      S3_STATIC_ARN: ${ssm:/mentorpal/v2/s3_static_arn, ''}
+      S3_STATIC_ARN: ${ssm:/qamentorpal/s3_static_arn, ''}
       LOG_LEVEL: DEBUG
       IS_SENTRY_ENABLED: true
       GRAPHQL_ENDPOINT: https://api.qamentorpal.org/graphql/graphql
@@ -62,7 +62,7 @@ custom:
       LOG_LEVEL: INFO
       IS_SENTRY_ENABLED: true
       GRAPHQL_ENDPOINT: https://api.mentorpal.org/graphql/graphql
-      S3_STATIC_ARN: ${ssm:/mentorpal/cf/s3_static_arn, ''}
+      S3_STATIC_ARN: ${ssm:/mentorpal/s3_static_arn, ''}
       JWT_SECRET: ${ssm:/mentorpal/cf/shared/jwt_secret, ''}
       ALERT_SNS_ARN: ${ssm:/mentorpal/cf/shared/sns_alert_topic_arn, ''}
       STATIC_URL_BASE: ${ssm:/mentorpal/cf/shared/static_url_base, ''}
