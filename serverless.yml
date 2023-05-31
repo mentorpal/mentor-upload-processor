@@ -45,6 +45,8 @@ custom:
       # in effect prevent sls from catching errors (missing variable in ssm)!
       S3_STATIC_ARN: ${ssm:/devmentorpal/s3_static_arn, ''}
       GRAPHQL_ENDPOINT: https://api.devmentorpal.org/graphql/graphql
+      SECRET_HEADER_VALUE: ${ssm:/mentorpal/newdev/shared/secret_header_value, ''}
+      SECRET_HEADER_NAME: ${ssm:/mentorpal/newdev/shared/secret_header_name, ''}
       JWT_SECRET: ${ssm:/mentorpal/newdev/shared/jwt_secret, ''}
       STATIC_URL_BASE: ${ssm:/mentorpal/newdev/shared/static_url_base, ''}
       ALERT_SNS_ARN: 'no alerts in dev'
@@ -55,6 +57,8 @@ custom:
       IS_SENTRY_ENABLED: true
       GRAPHQL_ENDPOINT: https://api.qamentorpal.org/graphql/graphql
       JWT_SECRET: ${ssm:/mentorpal/v2/shared/jwt_secret, ''}
+      SECRET_HEADER_VALUE: ${ssm:/mentorpal/v2/shared/secret_header_value, ''}
+      SECRET_HEADER_NAME: ${ssm:/mentorpal/v2/shared/secret_header_name, ''}
       STATIC_URL_BASE: ${ssm:/mentorpal/v2/shared/static_url_base, ''}
       ALERT_SNS_ARN: ${ssm:/mentorpal/v2/shared/sns_alert_topic_arn, ''}
       WEBACL_ARN: ${ssm:/qamentorpal/api_firewall_arn, ''}
@@ -64,6 +68,8 @@ custom:
       GRAPHQL_ENDPOINT: https://api.mentorpal.org/graphql/graphql
       S3_STATIC_ARN: ${ssm:/mentorpal/s3_static_arn, ''}
       JWT_SECRET: ${ssm:/mentorpal/cf/shared/jwt_secret, ''}
+      SECRET_HEADER_VALUE: ${ssm:/mentorpal/cf/shared/secret_header_value, ''}
+      SECRET_HEADER_NAME: ${ssm:/mentorpal/cf/shared/secret_header_name, ''}
       ALERT_SNS_ARN: ${ssm:/mentorpal/cf/shared/sns_alert_topic_arn, ''}
       STATIC_URL_BASE: ${ssm:/mentorpal/cf/shared/static_url_base, ''}
       WEBACL_ARN: ${ssm:/mentorpal/api_firewall_arn, ''}
@@ -127,6 +133,8 @@ provider:
     TRANSCRIBE_INPUT_BUCKET: '${self:service}-transcribe-input-${self:provider.stage}'
     TRANSCRIBE_OUTPUT_BUCKET: '${self:service}-transcribe-output-${self:provider.stage}'
     SIGNED_UPLOAD_BUCKET: '${self:service}-signed-upload-${self:provider.stage}'
+    SECRET_HEADER_NAME: ${self:custom.stages.${self:provider.stage}.SECRET_HEADER_NAME}
+    SECRET_HEADER_VALUE: ${self:custom.stages.${self:provider.stage}.SECRET_HEADER_VALUE}
     # AWS_REGION is reserved
     REGION: ${self:provider.region}
   
