@@ -134,6 +134,7 @@ provider:
     TRANSCRIBE_OUTPUT_BUCKET: '${self:service}-transcribe-output-${self:provider.stage}'
     SIGNED_UPLOAD_BUCKET: '${self:service}-signed-upload-${self:provider.stage}'
     SECRET_HEADER_NAME: ${self:custom.stages.${self:provider.stage}.SECRET_HEADER_NAME}
+    SECRET_HEADER_VALUE: ${self:custom.stages.${self:provider.stage}.SECRET_HEADER_VALUE}
     # AWS_REGION is reserved
     REGION: ${self:provider.region}
   
