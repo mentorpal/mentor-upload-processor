@@ -20,6 +20,10 @@ def get_graphql_endpoint() -> str:
     return environ.get("GRAPHQL_ENDPOINT") or "http://graphql/graphql"
 
 
+SECRET_HEADER_NAME = environ.get("SECRET_HEADER_NAME")
+SECRET_HEADER_VALUE = environ.get("SECRET_HEADER_VALUE")
+
+
 @dataclass
 class Media:
     type: str
@@ -313,11 +317,17 @@ def fetch_task_gql(mentor_id: str, question_id) -> GQLQueryBody:
     }
 
 
+def __auth_gql(query: GQLQueryBody, headers: Dict[str, str] = {}) -> dict:
+    final_headers = {**headers, f"{SECRET_HEADER_NAME}": f"{SECRET_HEADER_VALUE}"}
+    # SSL is not valid for alb so have to turn off validation
+    res = requests.post(get_graphql_endpoint(), json=query, headers=final_headers)
+    res.raise_for_status()
+    return res.json()
+
+
 def fetch_task(mentor_id: str, question_id, headers: Dict[str, str] = {}) -> dict:
     body = fetch_task_gql(mentor_id, question_id)
-    res = requests.post(get_graphql_endpoint(), json=body, headers=headers)
-    res.raise_for_status()
-    tdjson = res.json()
+    tdjson = __auth_gql(body, headers)
     if "errors" in tdjson:
         raise Exception(json.dumps(tdjson.get("errors")))
     return tdjson["data"]["uploadTask"]
@@ -325,9 +335,7 @@ def fetch_task(mentor_id: str, question_id, headers: Dict[str, str] = {}) -> dic
 
 def fetch_question_name(question_id: str, headers: Dict[str, str] = {}) -> str:
     body = fetch_question_name_gql(question_id)
-    res = requests.post(get_graphql_endpoint(), json=body, headers=headers)
-    res.raise_for_status()
-    tdjson = res.json()
+    tdjson = __auth_gql(body, headers)
     if "errors" in tdjson:
         raise Exception(json.dumps(tdjson.get("errors")))
     if (
@@ -430,9 +438,7 @@ def upload_answer_and_task_status_update(
     headers: Dict[str, str] = {},
 ) -> None:
     body = upload_answer_and_task_status_req_gql(answer_req, status_req)
-    res = requests.post(get_graphql_endpoint(), json=body, headers=headers)
-    res.raise_for_status()
-    tdjson = res.json()
+    tdjson = __auth_gql(body, headers)
     if "errors" in tdjson:
         raise Exception(json.dumps(tdjson.get("errors")))
 
@@ -441,9 +447,7 @@ def upload_task_status_update(
     req: UpdateTaskStatusRequest, headers: Dict[str, str] = {}
 ) -> None:
     body = upload_task_status_req_gql(req)
-    res = requests.post(get_graphql_endpoint(), json=body, headers=headers)
-    res.raise_for_status()
-    tdjson = res.json()
+    tdjson = __auth_gql(body, headers)
     if "errors" in tdjson:
         raise Exception(json.dumps(tdjson.get("errors")))
 
@@ -464,9 +468,7 @@ def is_upload_in_progress(
 ) -> bool:
     body = fetch_upload_task_gql(req)
     log.debug(body)
-    res = requests.post(get_graphql_endpoint(), json=body, headers=headers)
-    res.raise_for_status()
-    tdjson = res.json()
+    tdjson = __auth_gql(body, headers)
     if "errors" in tdjson:
         raise Exception(json.dumps(tdjson.get("errors")))
     return bool(tdjson["data"]["uploadTask"])
@@ -488,9 +490,7 @@ def mentor_thumbnail_update(
 ) -> None:
     body = thumbnail_update_gql(req)
     log.debug(body)
-    res = requests.post(get_graphql_endpoint(), json=body, headers=headers)
-    res.raise_for_status()
-    tdjson = res.json()
+    tdjson = __auth_gql(body, headers)
     if "errors" in tdjson:
         raise Exception(json.dumps(tdjson.get("errors")))
 
@@ -511,9 +511,7 @@ def mentor_vbg_update(
 ) -> None:
     body = vbg_update_gql(req)
     log.debug(body)
-    res = requests.post(get_graphql_endpoint(), json=body, headers=headers)
-    res.raise_for_status()
-    tdjson = res.json()
+    tdjson = __auth_gql(body, headers)
     if "errors" in tdjson:
         raise Exception(json.dumps(tdjson.get("errors")))
 
@@ -537,9 +535,7 @@ def org_header_update(
 ) -> None:
     body = org_header_update_gql(req)
     log.debug(body)
-    res = requests.post(get_graphql_endpoint(), json=body, headers=headers)
-    res.raise_for_status()
-    tdjson = res.json()
+    tdjson = __auth_gql(body, headers)
     if "errors" in tdjson:
         raise Exception(json.dumps(tdjson.get("errors")))
 
@@ -563,9 +559,8 @@ def org_footer_update(
 ) -> None:
     body = org_footer_update_gql(req)
     log.debug(body)
-    res = requests.post(get_graphql_endpoint(), json=body, headers=headers)
-    res.raise_for_status()
-    tdjson = res.json()
+    tdjson = __auth_gql(body, headers)
+
     if "errors" in tdjson:
         raise Exception(json.dumps(tdjson.get("errors")))
 
@@ -591,9 +586,8 @@ def import_task_create_gql(
     req: ImportTaskGQLRequest, headers: Dict[str, str] = {}
 ) -> None:
     body = import_task_create_gql_query(req)
-    res = requests.post(get_graphql_endpoint(), json=body, headers=headers)
-    res.raise_for_status()
-    tdjson = res.json()
+    tdjson = __auth_gql(body, headers)
+
     if "errors" in tdjson:
         raise Exception(json.dumps(tdjson.get("errors")))
 
@@ -770,9 +764,8 @@ def import_task_update_gql(
     req: ImportTaskGQLRequest, headers: Dict[str, str] = {}
 ) -> None:
     body = import_task_update_gql_query(req)
-    res = requests.post(get_graphql_endpoint(), json=body, headers=headers)
-    res.raise_for_status()
-    tdjson = res.json()
+    tdjson = __auth_gql(body, headers)
+
     if "errors" in tdjson:
         raise Exception(json.dumps(tdjson.get("errors")))
 
@@ -840,10 +833,8 @@ def update_answers_gql(
     req: UpdateAnswersGQLRequest, headers: Dict[str, str] = {}
 ) -> None:
     body = update_answers_gql_query(req)
-    res = requests.post(get_graphql_endpoint(), json=body, headers=headers)
-    log.error(res.json())
-    res.raise_for_status()
-    tdjson = res.json()
+    tdjson = __auth_gql(body, headers)
+
     if "errors" in tdjson:
         raise Exception(json.dumps(tdjson.get("errors")))
 
@@ -875,10 +866,10 @@ def validate_json(json_data, json_schema):
         raise Exception(err)
 
 
-def exec_graphql_with_json_validation(request_query, json_schema, **req_kwargs):
-    res = requests.post(get_graphql_endpoint(), json=request_query, **req_kwargs)
-    res.raise_for_status()
-    tdjson = res.json()
+def exec_graphql_with_json_validation(
+    request_query, json_schema, headers: Dict[str, str]
+):
+    tdjson = __auth_gql(request_query, headers)
     if "errors" in tdjson:
         raise Exception(json.dumps(tdjson.get("errors")))
     validate_json(tdjson, json_schema)
@@ -981,9 +972,8 @@ def upload_answer_update(
     answer_req: AnswerUpdateRequest, headers: Dict[str, str] = {}
 ) -> None:
     body = upload_answer_update_gql(answer_req)
-    res = requests.post(get_graphql_endpoint(), json=body, headers=headers)
-    res.raise_for_status()
-    tdjson = res.json()
+    tdjson = __auth_gql(body, headers)
+
     if "errors" in tdjson:
         raise Exception(json.dumps(tdjson.get("errors")))
 
@@ -1026,9 +1016,7 @@ def upload_answer_and_task_update(
     headers: Dict[str, str] = {},
 ) -> None:
     body = upload_answer_and_task_req_gql(answer_req, task_req)
-    res = requests.post(get_graphql_endpoint(), json=body, headers=headers)
-    res.raise_for_status()
-    tdjson = res.json()
+    tdjson = __auth_gql(body, headers)
     if "errors" in tdjson:
         raise Exception(json.dumps(tdjson.get("errors")))
 
