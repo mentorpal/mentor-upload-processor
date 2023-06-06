@@ -84,6 +84,10 @@ class Subject:
     questions: List[SubjectQuestionGQL]
 
 
+class ExternalVideoIds:
+    wistiaId: str
+
+
 class Answer:
     _id: str
     question: Question
@@ -91,6 +95,7 @@ class Answer:
     transcript: str
     status: str
     media: List[Media]
+    externalVideoIds: ExternalVideoIds
 
 
 class UserQuestionMentor:
@@ -301,7 +306,7 @@ def process_transfer_mentor(
     answer_updates = [item for sublist in answer_updates_unflat for item in sublist]
     errors_unflat = list(map(lambda r: r.errors, answer_args_results))
     errors = [item for sublist in errors_unflat for item in sublist]
-    chunks = [answer_updates[x: x + 100] for x in range(0, len(answer_updates), 100)]
+    chunks = [answer_updates[x : x + 100] for x in range(0, len(answer_updates), 100)]
     for answer_chunk in chunks:
         update_answers_gql(
             UpdateAnswersGQLRequest(mentorId=mentor, answers=answer_chunk), auth_headers

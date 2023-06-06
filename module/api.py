@@ -190,6 +190,10 @@ class Subject:
     questions: List[SubjectQuestionGQL]
 
 
+class ExternalVideoIds:
+    wistiaId: str
+
+
 class Answer:
     _id: str
     question: Question
@@ -197,6 +201,7 @@ class Answer:
     transcript: str
     status: str
     media: List[Media]
+    externalVideoIds: ExternalVideoIds
 
 
 class UserQuestionMentor:
@@ -611,15 +616,6 @@ def import_task_update_gql_query(req: ImportTaskUpdateGQLRequest) -> GQLQueryBod
     }
 
 
-class MentorExportJson:
-    id: str
-    mentorInfo: MentorInfo
-    subjects: List[Subject]
-    questions: List[Question]
-    answers: List[Answer]
-    userQuestions: List[UserQuestion]
-
-
 @dataclass
 class ImportMentorGQLRequest:
     mentor: str
@@ -653,6 +649,12 @@ import_mentor_gql_response_schema = {
                                                     "_id": {"type": "string"},
                                                 },
                                                 "required": ["_id"],
+                                            },
+                                            "externalVideoIds": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "wistiaId": {"type": "string"},
+                                                },
                                             },
                                             "webMedia": {
                                                 "type": ["object", "null"],
@@ -727,6 +729,9 @@ def import_mentor_gql_query(req: ImportMentorGQLRequest) -> GQLQueryBody:
                 mentorImport(mentor: $mentor,json:$json, replacedMentorDataChanges: $replacedMentorDataChanges){
                     answers{
                         hasUntransferredMedia
+                        externalVideoIds{
+                            wistiaId
+                        }
                         question{
                             _id
                         }
