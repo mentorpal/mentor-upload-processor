@@ -178,6 +178,10 @@ transfer_mentor_json_schema = {
                 "topics": {"type": "array", "items": {"$ref": "#/$defs/Topic"}},
             },
         },
+        "ExternalVideoIdsGQL": {
+            "type": "object",
+            "properties": {"wistiaId": {"type": "string"}},
+        },
         "AnswerGQL": {
             "type": "object",
             "properties": {
@@ -186,6 +190,7 @@ transfer_mentor_json_schema = {
                 "hasEditedTranscript": {"type": "boolean"},
                 "transcript": {"type": "string"},
                 "status": {"type": "string"},
+                "externalVideoIds": {"$ref": "#/$defs/ExternalVideoIdsGQL"},
                 "webMedia": {
                     "type": ["object", "null"],
                     "items": {
