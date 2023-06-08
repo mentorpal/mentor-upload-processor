@@ -171,6 +171,12 @@ def handler(event, context):
         if "maintain_original_aspect_ratio" in upload_request
         else False
     )
+    external_video_ids = (
+        upload_request["externalVideoIds"]
+        if "externalVideoIds" in upload_request
+        else None
+    )
+    print(external_video_ids, flush=True)
     is_vbg_video = (
         upload_request["isVbgVideo"] if "isVbgVideo" in upload_request else False
     )  # vbg videos are expected to be in format of mime type webm with vp9 encoding
@@ -251,7 +257,12 @@ def handler(event, context):
     # we risk here overriding values, perhaps processing was already done, so status is DONE
     # but this will overwrite and revert them back to QUEUED. Can we just append?
     upload_answer_and_task_update(
-        AnswerUpdateRequest(mentor=mentor, question=question, transcript=""),
+        AnswerUpdateRequest(
+            mentor=mentor,
+            question=question,
+            transcript="",
+            external_video_ids=external_video_ids,
+        ),
         UploadTaskRequest(
             mentor=mentor,
             question=question,
