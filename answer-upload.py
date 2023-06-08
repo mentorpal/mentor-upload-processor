@@ -166,6 +166,11 @@ def handler(event, context):
     mentor = upload_request["mentor"]
     question = upload_request["question"]
     video_key = upload_request["video"]
+    maintain_original_aspect_ratio = (
+        upload_request["maintain_original_aspect_ratio"]
+        if "maintain_original_aspect_ratio" in upload_request
+        else False
+    )
     is_vbg_video = (
         upload_request["isVbgVideo"] if "isVbgVideo" in upload_request else False
     )  # vbg videos are expected to be in format of mime type webm with vp9 encoding
@@ -238,6 +243,7 @@ def handler(event, context):
             "trimUploadTask": trim_upload_task,
             "transcribeTask": transcribe_task,
             "authHeaders": auth_headers,
+            "maintain_original_aspect_ratio": maintain_original_aspect_ratio,
         }
     }
 
