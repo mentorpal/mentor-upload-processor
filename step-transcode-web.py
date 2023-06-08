@@ -34,12 +34,22 @@ log = get_logger("answer-transcode-web-handler")
 s3 = boto3.client("s3")
 
 
-def transcode_web(video_file, video_file_type: Supported_Video_Type, s3_path):
+def transcode_web(
+    video_file,
+    video_file_type: Supported_Video_Type,
+    s3_path,
+    maintain_original_aspect_ratio,
+):
     work_dir = os.path.dirname(video_file)
     target_file = f"web.{video_file_type.extension}"
     target_file_path = os.path.join(work_dir, target_file)
 
-    video_encode_for_web(video_file, target_file_path, video_file_type.mime)
+    video_encode_for_web(
+        video_file,
+        target_file_path,
+        video_file_type.mime,
+        maintain_original_aspect_ratio=maintain_original_aspect_ratio,
+    )
 
     log.info("uploading %s to %s/%s", target_file_path, s3_bucket, s3_path)
     s3.upload_file(
@@ -65,6 +75,7 @@ def transcode_web(video_file, video_file_type: Supported_Video_Type, s3_path):
 
 def process_task(request):
     auth_headers = request["authHeaders"]
+    maintain_original_aspect_ratio = request["maintain_original_aspect_ratio"]
     log.info("video to process %s", request["video"])
     stored_task = fetch_from_graphql(
         request["mentor"], request["question"], "transcodeWebTask", auth_headers
@@ -110,7 +121,9 @@ def process_task(request):
             auth_headers,
         )
 
-        transcode_web(work_file, desired_video_file_type, s3_path)
+        transcode_web(
+            work_file, desired_video_file_type, s3_path, maintain_original_aspect_ratio
+        )
 
         web_media = {
             "type": "video",

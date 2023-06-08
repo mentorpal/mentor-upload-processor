@@ -201,18 +201,23 @@ def get_args_video_encode_for_mobile(
     video_mime_type: str,
     target_height=480,
     video_dims: Optional[Tuple[int, int]] = None,
+    maintain_original_aspect_ratio=False,
 ) -> Tuple[str, ...]:
     i_w, i_h = video_dims or find_video_dims(src_file)
     o_w, o_h = (target_height, target_height)
     crop_w = 0
     crop_h = 0
-    if i_w > i_h:
-        # for now assumes we want to zoom in slightly on landscape videos
-        # before cropping to square
-        crop_h = i_h * 0.25
-        crop_w = i_w - (i_h - crop_h)
+    if maintain_original_aspect_ratio is False:
+        if i_w > i_h:
+            # for now assumes we want to zoom in slightly on landscape videos
+            # before cropping to square
+            crop_h = i_h * 0.25
+            crop_w = i_w - (i_h - crop_h)
+        else:
+            crop_h = crop_h - crop_h
     else:
-        crop_h = crop_h - crop_h
+        o_h = round(min(target_height, i_h))
+        o_w = int(i_w * (o_h / i_h))
     if video_mime_type == "video/mp4":
         return mp4_ffmpeg_transcode_args(crop_w, crop_h, o_w, o_h)
     elif video_mime_type == "video/webm":
@@ -227,6 +232,7 @@ def get_args_video_encode_for_web(
     max_height=720,
     target_aspect=1.77777777778,
     video_dims: Optional[Tuple[int, int]] = None,
+    maintain_original_aspect_ratio=False,
 ) -> Tuple[str, ...]:
     i_w, i_h = video_dims or find_video_dims(src_file)
     crop_w = 0
@@ -234,12 +240,16 @@ def get_args_video_encode_for_web(
     o_w = 0
     o_h = 0
     i_aspect = float(i_w) / float(i_h)
-    if i_aspect >= target_aspect:
-        crop_w = i_w - (i_h * target_aspect)
-        o_h = round(min(max_height, i_h))
+    if maintain_original_aspect_ratio is False:
+        if i_aspect >= target_aspect:
+            crop_w = i_w - (i_h * target_aspect)
+            o_h = round(min(max_height, i_h))
+        else:
+            o_h = round(min(max_height, i_w * (1.0 / target_aspect)))
+        o_w = int(o_h * target_aspect)
     else:
-        o_h = round(min(max_height, i_w * (1.0 / target_aspect)))
-    o_w = int(o_h * target_aspect)
+        o_h = round(min(max_height, i_h))
+        o_w = int(i_w * (o_h / i_h))
     if o_w % 2 != 0:
         o_w += 1  # ensure width is divisible by 2
     if o_h % 2 != 0:
@@ -257,12 +267,19 @@ def output_args_video_to_audio() -> Tuple[str, ...]:
 
 
 def video_encode_for_mobile(
-    src_file: str, tgt_file: str, video_mime_type: str, target_height=480
+    src_file: str,
+    tgt_file: str,
+    video_mime_type: str,
+    target_height=480,
+    maintain_original_aspect_ratio=False,
 ) -> None:
     log.info("%s, %s, %s", src_file, tgt_file, target_height)
 
     input_args, output_args = get_args_video_encode_for_mobile(
-        src_file, video_mime_type, target_height=target_height
+        src_file,
+        video_mime_type,
+        target_height=target_height,
+        maintain_original_aspect_ratio=maintain_original_aspect_ratio,
     )
 
     ff = ffmpy.FFmpeg(
@@ -293,12 +310,17 @@ def video_encode_for_web(
     video_mime_type: str,
     max_height=720,
     target_aspect=1.77777777778,
+    maintain_original_aspect_ratio=False,
 ) -> None:
     log.info("%s, %s, %s, %s", src_file, tgt_file, max_height, target_aspect)
     os.makedirs(os.path.dirname(tgt_file), exist_ok=True)
 
     input_args, output_args = get_args_video_encode_for_web(
-        src_file, video_mime_type, max_height=max_height, target_aspect=target_aspect
+        src_file,
+        video_mime_type,
+        max_height=max_height,
+        target_aspect=target_aspect,
+        maintain_original_aspect_ratio=maintain_original_aspect_ratio,
     )
 
     ff = ffmpy.FFmpeg(
