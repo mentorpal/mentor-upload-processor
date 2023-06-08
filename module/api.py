@@ -24,6 +24,10 @@ SECRET_HEADER_NAME = environ.get("SECRET_HEADER_NAME")
 SECRET_HEADER_VALUE = environ.get("SECRET_HEADER_VALUE")
 
 
+class ExternalVideoIds:
+    wistiaId: str
+
+
 @dataclass
 class Media:
     type: str
@@ -49,6 +53,7 @@ class AnswerUpdateRequest:
     vtt_media: Media = None
     transcript: str = None
     has_edited_transcript: bool = None
+    external_video_ids: ExternalVideoIds = None
 
 
 @dataclass
@@ -188,10 +193,6 @@ class Subject:
     categories: List[Category]
     topics: List[Topic]
     questions: List[SubjectQuestionGQL]
-
-
-class ExternalVideoIds:
-    wistiaId: str
 
 
 class Answer:
@@ -996,6 +997,9 @@ def upload_answer_and_task_req_gql(
     if answer_req.has_edited_transcript is not None:
         variables["answer"]["hasEditedTranscript"] = answer_req.has_edited_transcript
 
+    if answer_req.external_video_ids:
+        variables["answer"]["externalVideoIds"] = answer_req.external_video_ids
+
     variables["status"] = {
         "transcodeWebTask": task_req.transcode_web_task,
         "transcodeMobileTask": task_req.transcode_mobile_task,
@@ -1004,6 +1008,7 @@ def upload_answer_and_task_req_gql(
     }
     if task_req.transcript:
         variables["status"]["transcript"] = task_req.transcript
+    print(variables, flush=True)
     return {
         "query": """mutation UpdateUploadAnswerAndTaskStatus($mentorId: ID!, $questionId: ID!, $answer: UploadAnswerType!, $status: UploadTaskInputType!) {
             api {
