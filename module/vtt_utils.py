@@ -4,23 +4,19 @@
 # The full terms of this copyright and license should always be found in the root directory of this software deliverable as "license.txt" and if these terms are not found with this software, please contact the USC Stevens Center for the full license.
 import re
 
+
 def vtt_file_validation(file_path: str):
     with open(file_path, 'r') as file:
         vtt_content = file.read()
         if not vtt_content.startswith('WEBVTT'):
             raise Exception('Invalid VTT file format. Missing or incorrect header (WEBVTT)')
-        
         timestamp_pattern = re.compile(r'^\d{2}:\d{2}:\d{2}\.\d{3} --> \d{2}:\d{2}:\d{2}\.\d{3}$', re.MULTILINE)
         timestamps = re.findall(timestamp_pattern, vtt_content)
-
         if not timestamps:
             raise Exception('Invalid VTT file structure. No timestamps found.')
-            return False
-
         for timestamp in timestamps:
             if not is_valid_timestamp(timestamp):
                 raise Exception(f'Invalid timestamp format: {timestamp}')
-
 
 
 def is_valid_timestamp(timestamp):
@@ -32,4 +28,4 @@ def is_valid_timestamp(timestamp):
 
 def is_valid_time_format(time):
     time_format_pattern = re.compile(r'^\d{2}:\d{2}:\d{2}\.\d{3}$')
-    return bool(re.match(time_format_pattern, time))    
+    return bool(re.match(time_format_pattern, time))
