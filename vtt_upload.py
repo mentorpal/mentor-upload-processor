@@ -85,32 +85,21 @@ def handler(event, context):
         return create_json_response(401, data, event)
     log.debug("form keys: %s", form_data.keys())
 
-
     # vtt validation
     try:
         vtt_file = form_data["vtt_file"]
-        local_vtt_file_path = f"/tmp/en.vtt"
+        local_vtt_file_path = "/tmp/en.vtt"
         os.makedirs(os.path.dirname(local_vtt_file_path), exist_ok=True)
         with open(local_vtt_file_path, 'wb') as file:
             file.write(vtt_file.value)
         vtt_file_validation(local_vtt_file_path)
     except Exception as e:
-        log.error(f"Failed to validate vtt file")
+        log.error("Failed to validate vtt file")
         data = {
             "error": "VTT File Validation Failed",
             "message": str(e),
         }
         return create_json_response(401, data, event)
-
-    # if (
-    #     form_data["background_image"].type != "image/png"
-    #     and form_data["background_image"].type != "image/jpeg"
-    # ):
-    #     data = {"error": "Bad Request", "message": "only png/jpg images are accepted"}
-    #     return create_json_response(401, data, event)
-
-
-
 
     auth_headers = get_auth_headers(event)
 
@@ -133,7 +122,6 @@ def handler(event, context):
         ExtraArgs={"ContentType": "text"},
     )
 
-    
     mentor_vtt_update(
         MentorVttUpdateRequest(mentor=mentor, question=question_id, vtt_url=s3_vtt_path),
         auth_headers,

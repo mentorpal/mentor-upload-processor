@@ -91,6 +91,7 @@ class MentorVbgUpdateRequest:
     mentor: str
     vbgPath: str
 
+
 @dataclass
 class MentorVttUpdateRequest:
     mentor: str
@@ -517,6 +518,7 @@ def vbg_update_gql(req: MentorVbgUpdateRequest) -> GQLQueryBody:
         "variables": {"mentorId": req.mentor, "vbgPath": req.vbgPath},
     }
 
+
 def vtt_update_gql(req: MentorVttUpdateRequest) -> GQLQueryBody:
     return {
         "query": """mutation MentorVttUpdate($mentorId: ID!, $questionId: String!, $vttUrl: String!) {
@@ -536,6 +538,7 @@ def mentor_vbg_update(
     tdjson = __auth_gql(body, headers)
     if "errors" in tdjson:
         raise Exception(json.dumps(tdjson.get("errors")))
+
 
 def mentor_vtt_update(
     req: MentorVttUpdateRequest, headers: Dict[str, str] = {}
