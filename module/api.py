@@ -48,6 +48,9 @@ class TaskInfo:
 class AnswerUpdateRequest:
     mentor: str
     question: str
+    hash: str = None
+    duration: float = None
+    stringMetadata: str = None
     web_media: Media = None
     mobile_media: Media = None
     vtt_media: Media = None
