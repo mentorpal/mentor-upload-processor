@@ -88,7 +88,6 @@ def process_task(request):
     with tempfile.TemporaryDirectory() as work_dir:
         work_file = os.path.join(work_dir, "original_video")
         s3.download_file(s3_bucket, request["video"], work_file)
-        video_metadata_string, duration, video_hash = get_video_metadata(work_file)
 
         is_vbg_video = request["isVbgVideo"] if "isVbgVideo" in request else False
         if is_vbg_video:
@@ -124,6 +123,7 @@ def process_task(request):
             work_file, desired_video_file_type, s3_path, maintain_original_aspect_ratio
         )
 
+        video_metadata_string, duration, video_hash = get_video_metadata(work_file)
         web_media = {
             "duration": duration,
             "hash": video_hash,
