@@ -14,6 +14,7 @@ import ffmpy
 import filetype
 import subprocess
 import json
+import hashlib
 from module.constants import Supported_Video_Type, supported_video_types
 from pymediainfo import MediaInfo
 
@@ -33,6 +34,45 @@ def get_file_mime(video_file) -> str:
     if file_type is None:
         raise Exception("Failed to determine file type")
     return file_type.mime
+
+
+def hash_file(filename):
+    """"This function returns the SHA-1 hash
+   of the file passed into it"""
+
+    # make a hash object
+    h = hashlib.sha1()
+
+    # open file for reading in binary mode
+    with open(filename, "rb") as file:
+
+        # loop till the end of the file
+        chunk = 0
+        while chunk != b"":
+            # read only 1024 bytes at a time
+            chunk = file.read(1024)
+            h.update(chunk)
+
+    # return the hex representation of digest
+    return h.hexdigest()
+
+
+def get_video_metadata(video_file):
+    video_metadata_string = MediaInfo.parse(video_file, library_file=LIB_FILE).to_json()
+    video_metadata = json.loads(video_metadata_string)
+    duration = -1
+    try:
+        tracks = video_metadata["tracks"]
+        video_track = next(
+            (track for track in tracks if track["track_type"] == "Video")
+        )
+        duration = float(video_track["duration"])
+    except Exception as e:
+        print(e)
+        print("Failed to parse duration")
+
+    video_hash = hash_file(video_file)
+    return video_metadata_string, duration, video_hash
 
 
 def assert_video_duration(video_file, min_length):
@@ -110,28 +150,31 @@ def input_output_args_trim_video(
 def webm_vp9_ffmpeg_transcode_args(
     crop_iw: float, crop_ih: float, scale_ow: int, scale_oh: int
 ):
-    return ("-c:v", "libvpx-vp9"), (
-        "-y",
-        "-filter:v",
-        f"crop=iw-{crop_iw:.0f}:ih-{crop_ih:.0f},scale={scale_ow:.0f}:{scale_oh:.0f},fps=30",
-        "-c:v",
-        "libvpx-vp9",  # vp9 codec supports alpha channel
-        "-crf",
-        "23",
-        "-pix_fmt",
-        "yuva420p",  # add alpha channel
-        "-movflags",
-        "+faststart",
-        "-c:a",
-        "aac",
-        "-ac",
-        "1",
-        "-loglevel",
-        "verbose",
-        "-metadata:s:v:0",
-        "alpha_mode=1",
-        "-acodec",
-        "libvorbis",
+    return (
+        ("-c:v", "libvpx-vp9"),
+        (
+            "-y",
+            "-filter:v",
+            f"crop=iw-{crop_iw:.0f}:ih-{crop_ih:.0f},scale={scale_ow:.0f}:{scale_oh:.0f},fps=30",
+            "-c:v",
+            "libvpx-vp9",  # vp9 codec supports alpha channel
+            "-crf",
+            "23",
+            "-pix_fmt",
+            "yuva420p",  # add alpha channel
+            "-movflags",
+            "+faststart",
+            "-c:a",
+            "aac",
+            "-ac",
+            "1",
+            "-loglevel",
+            "verbose",
+            "-metadata:s:v:0",
+            "alpha_mode=1",
+            "-acodec",
+            "libvorbis",
+        ),
     )
 
 
@@ -175,24 +218,27 @@ def get_video_encoding_type(src_file):
 def mp4_ffmpeg_transcode_args(
     crop_iw: float, crop_ih: float, scale_ow: int, scale_oh: int
 ):
-    return None, (
-        "-y",
-        "-filter:v",
-        f"crop=iw-{crop_iw:.0f}:ih-{crop_ih:.0f},scale={scale_ow:.0f}:{scale_oh:.0f},fps=30",
-        "-c:v",
-        "libx264",
-        "-crf",
-        "23",
-        "-pix_fmt",
-        "yuv420p",
-        "-movflags",
-        "+faststart",
-        "-c:a",
-        "aac",
-        "-ac",
-        "1",
-        "-loglevel",
-        "quiet",
+    return (
+        None,
+        (
+            "-y",
+            "-filter:v",
+            f"crop=iw-{crop_iw:.0f}:ih-{crop_ih:.0f},scale={scale_ow:.0f}:{scale_oh:.0f},fps=30",
+            "-c:v",
+            "libx264",
+            "-crf",
+            "23",
+            "-pix_fmt",
+            "yuv420p",
+            "-movflags",
+            "+faststart",
+            "-c:a",
+            "aac",
+            "-ac",
+            "1",
+            "-loglevel",
+            "quiet",
+        ),
     )
 
 
@@ -454,17 +500,9 @@ def vtt_str_file_to_objects(vtt_str_file) -> List[TimestampSegment]:
         if re.search("^00:", line):
             timestamp_split = line.split(" --> ")
             start_duration = timestamp_split[0]
-            (
-                start_hours,
-                start_minutes,
-                start_seconds,
-            ) = start_duration.split(":")
+            (start_hours, start_minutes, start_seconds) = start_duration.split(":")
             end_duration = timestamp_split[1]
-            (
-                end_hours,
-                end_minutes,
-                end_seconds,
-            ) = end_duration.split(":")
+            (end_hours, end_minutes, end_seconds) = end_duration.split(":")
             timestamp_segs.append(
                 TimestampSegment(
                     float(start_minutes) * 60 + float(start_seconds),

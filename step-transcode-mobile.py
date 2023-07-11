@@ -10,6 +10,7 @@ import os
 from module.logger import get_logger
 from media_tools import (
     get_file_mime,
+    get_video_metadata,
     video_encode_for_mobile,
     ffmpeg_barebones_transcode,
     get_video_encoding_type,
@@ -120,7 +121,11 @@ def process_task(request):
             work_file, desired_video_file_type, s3_path, maintain_original_aspect_ratio
         )
 
+        video_metadata_string, duration, video_hash = get_video_metadata(work_file)
         mobile_media = {
+            "duration": duration,
+            "hash": video_hash,
+            "stringMetadata" : video_metadata_string,
             "type": "video",
             "tag": "mobile",
             "url": f"{s3_path}/mobile.mp4",  # mp4's are always created

@@ -13,6 +13,7 @@ from module.logger import get_logger
 from module.constants import Supported_Video_Type, MP4, WEBM_VP9
 from media_tools import (
     get_file_mime,
+    get_video_metadata,
     video_encode_for_web,
     ffmpeg_barebones_transcode,
     get_video_encoding_type,
@@ -23,11 +24,7 @@ from module.api import (
     upload_task_status_update,
     upload_answer_and_task_status_update,
 )
-from module.utils import (
-    s3_bucket,
-    load_sentry,
-    fetch_from_graphql,
-)
+from module.utils import s3_bucket, load_sentry, fetch_from_graphql
 
 load_sentry()
 log = get_logger("answer-transcode-web-handler")
@@ -95,6 +92,7 @@ def process_task(request):
         is_vbg_video = request["isVbgVideo"] if "isVbgVideo" in request else False
         if is_vbg_video:
             try:
+
                 file_mime_type = get_file_mime(work_file)
                 file_encoding = get_video_encoding_type(work_file)
                 if file_mime_type == "video/webm" and file_encoding == "vp9":
@@ -125,7 +123,11 @@ def process_task(request):
             work_file, desired_video_file_type, s3_path, maintain_original_aspect_ratio
         )
 
+        video_metadata_string, duration, video_hash = get_video_metadata(work_file)
         web_media = {
+            "duration": duration,
+            "hash": video_hash,
+            "stringMetadata" : video_metadata_string,
             "type": "video",
             "tag": "web",
             "url": f"{s3_path}/web.mp4",  # mp4's are always created
