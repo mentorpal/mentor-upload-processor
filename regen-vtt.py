@@ -73,5 +73,9 @@ def handler(event, context):
             )
         else:
             raise Exception(f"Failed to find vtt file at {vtt_file_path}")
-        data = {"regen_vtt": True}
+        data = {
+            "regen_vtt": True,
+            "new_vtt_text": new_vtt_str,
+            "new_vtt_url": item_path,
+        }
         return create_json_response(200, data, event)
