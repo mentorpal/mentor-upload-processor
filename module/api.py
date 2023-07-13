@@ -34,7 +34,7 @@ class Media:
     tag: str
     url: str
     needsTransfer: bool  # noqa: N815
-    vttText: str = "" # noqa: N815
+    vttText: str = ""  # noqa: N815
     transparentVideoUrl: str = None  # noqa: N815
 
 
