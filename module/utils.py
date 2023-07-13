@@ -139,3 +139,9 @@ def fetch_from_graphql(mentor, question, task_name, headers):
         log.error("task does not exist in upload task %s", upload_task)
         raise Exception("task does not exist in upload task %s", upload_task)
     return stored_task
+
+
+def get_text_from_file(file_path: str):
+    with open(file_path, "r") as file:
+        data = file.read()
+        return data

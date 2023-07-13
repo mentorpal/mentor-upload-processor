@@ -19,6 +19,7 @@ from module.api import (
 from module.logger import get_logger
 from module.utils import (
     create_json_response,
+    get_text_from_file,
     s3_bucket,
     is_authorized,
     load_sentry,
@@ -90,7 +91,7 @@ def handler(event, context):
         vtt_file = form_data["vtt_file"]
         local_vtt_file_path = "/tmp/en.vtt"
         os.makedirs(os.path.dirname(local_vtt_file_path), exist_ok=True)
-        with open(local_vtt_file_path, 'wb') as file:
+        with open(local_vtt_file_path, "wb") as file:
             file.write(vtt_file.value)
         vtt_file_validation(local_vtt_file_path)
     except Exception as e:
@@ -122,15 +123,17 @@ def handler(event, context):
         ExtraArgs={"ContentType": "text"},
     )
 
+    vtt_text = get_text_from_file(local_vtt_file_path)
+
     mentor_vtt_update(
-        MentorVttUpdateRequest(mentor=mentor, question=question_id, vtt_url=s3_vtt_path),
+        MentorVttUpdateRequest(
+            mentor=mentor, question=question_id, vtt_url=s3_vtt_path, vtt_text=vtt_text
+        ),
         auth_headers,
     )
 
     static_url_base = require_env("STATIC_URL_BASE")
-    data = {
-        "data": {"vtt_path": urljoin(static_url_base, s3_vtt_path)}
-    }
+    data = {"data": {"vtt_path": urljoin(static_url_base, s3_vtt_path)}}
 
     return create_json_response(200, data, event)
 

@@ -34,6 +34,7 @@ class Media:
     tag: str
     url: str
     needsTransfer: bool  # noqa: N815
+    vttText: str = "" # noqa: N815
     transparentVideoUrl: str = None  # noqa: N815
 
 
@@ -100,6 +101,7 @@ class MentorVttUpdateRequest:
     mentor: str
     question: str
     vtt_url: str
+    vtt_text: str
 
 
 @dataclass
@@ -524,12 +526,17 @@ def vbg_update_gql(req: MentorVbgUpdateRequest) -> GQLQueryBody:
 
 def vtt_update_gql(req: MentorVttUpdateRequest) -> GQLQueryBody:
     return {
-        "query": """mutation MentorVttUpdate($mentorId: ID!, $questionId: String!, $vttUrl: String!) {
+        "query": """mutation MentorVttUpdate($mentorId: ID!, $questionId: String!, $vttUrl: String!, $vttText: String!) {
             api {
-                mentorVttUpdate(mentorId: $mentorId, questionId: $questionId, vttUrl: $vttUrl)
+                mentorVttUpdate(mentorId: $mentorId, questionId: $questionId, vttUrl: $vttUrl, vttText: $vttText)
             }
         }""",
-        "variables": {"mentorId": req.mentor, "questionId": req.question, "vttUrl": req.vtt_url},
+        "variables": {
+            "mentorId": req.mentor,
+            "questionId": req.question,
+            "vttUrl": req.vtt_url,
+            "vttText": req.vtt_text,
+        },
     }
 
 

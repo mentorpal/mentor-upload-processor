@@ -127,7 +127,7 @@ def process_task(request):
         web_media = {
             "duration": duration,
             "hash": video_hash,
-            "stringMetadata" : video_metadata_string,
+            "stringMetadata": video_metadata_string,
             "type": "video",
             "tag": "web",
             "url": f"{s3_path}/web.mp4",  # mp4's are always created

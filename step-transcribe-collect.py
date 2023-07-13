@@ -17,6 +17,7 @@ from module.api import (
     upload_answer_and_task_status_update,
 )
 from module.utils import (
+    get_text_from_file,
     s3_bucket,
     load_sentry,
     require_env,
@@ -96,10 +97,14 @@ def process_event(
             f"videos/{mentor}/{question}/en.vtt",
             ExtraArgs={"ContentType": "text/vtt"},
         )
+
+        vtt_text = get_text_from_file(vtt_file)
+
         vtt_media = {
             "type": "subtitles",
             "tag": "en",
             "url": f"videos/{mentor}/{question}/en.vtt",
+            "vttText": vtt_text,
         }
 
         upload_answer_and_task_status_update(
