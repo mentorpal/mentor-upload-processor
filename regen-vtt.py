@@ -2,7 +2,11 @@ import json
 import base64
 import tempfile
 import os
-from module.api import fetch_answer_transcript_and_media
+from module.api import (
+    MentorVttUpdateRequest,
+    fetch_answer_transcript_and_media,
+    mentor_vtt_update,
+)
 from media_tools import transcript_to_vtt
 import boto3
 from module.logger import get_logger
@@ -48,7 +52,7 @@ def handler(event, context):
             transcript,
             video_media,
         ) = fetch_answer_transcript_and_media(mentor, question, auth_headers)
-        transcript_to_vtt(video_media["url"], vtt_file_path, transcript)
+        new_vtt_str = transcript_to_vtt(video_media["url"], vtt_file_path, transcript)
         if os.path.isfile(vtt_file_path):
             item_path = f"videos/{mentor}/{question}/en.vtt"
             s3.upload_file(
@@ -56,6 +60,16 @@ def handler(event, context):
                 s3_bucket,
                 item_path,
                 ExtraArgs={"ContentType": "text/vtt"},
+            )
+
+            mentor_vtt_update(
+                MentorVttUpdateRequest(
+                    mentor=mentor,
+                    question=question,
+                    vtt_url=item_path,
+                    vtt_text=new_vtt_str,
+                ),
+                auth_headers,
             )
         else:
             raise Exception(f"Failed to find vtt file at {vtt_file_path}")
