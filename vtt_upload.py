@@ -133,7 +133,12 @@ def handler(event, context):
     )
 
     static_url_base = require_env("STATIC_URL_BASE")
-    data = {"data": {"vtt_path": urljoin(static_url_base, s3_vtt_path)}}
+    data = {
+        "data": {
+            "vtt_path": urljoin(static_url_base, s3_vtt_path),
+            "vtt_text": vtt_text,
+        }
+    }
 
     return create_json_response(200, data, event)
 

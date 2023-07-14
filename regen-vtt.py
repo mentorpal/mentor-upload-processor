@@ -2,6 +2,7 @@ import json
 import base64
 import tempfile
 import os
+from urllib.parse import urljoin
 from module.api import (
     MentorVttUpdateRequest,
     fetch_answer_transcript_and_media,
@@ -10,7 +11,13 @@ from module.api import (
 from media_tools import transcript_to_vtt
 import boto3
 from module.logger import get_logger
-from module.utils import create_json_response, s3_bucket, load_sentry, get_auth_headers
+from module.utils import (
+    create_json_response,
+    require_env,
+    s3_bucket,
+    load_sentry,
+    get_auth_headers,
+)
 
 s3 = boto3.client("s3")
 
@@ -73,9 +80,11 @@ def handler(event, context):
             )
         else:
             raise Exception(f"Failed to find vtt file at {vtt_file_path}")
+        static_url_base = require_env("STATIC_URL_BASE")
+
         data = {
             "regen_vtt": True,
             "new_vtt_text": new_vtt_str,
-            "new_vtt_url": item_path,
+            "new_vtt_url": urljoin(static_url_base, item_path),
         }
         return create_json_response(200, data, event)
