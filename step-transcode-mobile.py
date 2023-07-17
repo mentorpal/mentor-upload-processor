@@ -125,7 +125,7 @@ def process_task(request):
         mobile_media = {
             "duration": duration,
             "hash": video_hash,
-            "stringMetadata" : video_metadata_string,
+            "stringMetadata": video_metadata_string,
             "type": "video",
             "tag": "mobile",
             "url": f"{s3_path}/mobile.mp4",  # mp4's are always created

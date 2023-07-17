@@ -37,8 +37,8 @@ def get_file_mime(video_file) -> str:
 
 
 def hash_file(filename):
-    """"This function returns the SHA-1 hash
-   of the file passed into it"""
+    """ "This function returns the SHA-1 hash
+    of the file passed into it"""
 
     # make a hash object
     h = hashlib.sha1()

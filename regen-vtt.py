@@ -2,11 +2,22 @@ import json
 import base64
 import tempfile
 import os
-from module.api import fetch_answer_transcript_and_media
+from urllib.parse import urljoin
+from module.api import (
+    MentorVttUpdateRequest,
+    fetch_answer_transcript_and_media,
+    mentor_vtt_update,
+)
 from media_tools import transcript_to_vtt
 import boto3
 from module.logger import get_logger
-from module.utils import create_json_response, s3_bucket, load_sentry, get_auth_headers
+from module.utils import (
+    create_json_response,
+    require_env,
+    s3_bucket,
+    load_sentry,
+    get_auth_headers,
+)
 
 s3 = boto3.client("s3")
 
@@ -48,7 +59,7 @@ def handler(event, context):
             transcript,
             video_media,
         ) = fetch_answer_transcript_and_media(mentor, question, auth_headers)
-        transcript_to_vtt(video_media["url"], vtt_file_path, transcript)
+        new_vtt_str = transcript_to_vtt(video_media["url"], vtt_file_path, transcript)
         if os.path.isfile(vtt_file_path):
             item_path = f"videos/{mentor}/{question}/en.vtt"
             s3.upload_file(
@@ -57,7 +68,23 @@ def handler(event, context):
                 item_path,
                 ExtraArgs={"ContentType": "text/vtt"},
             )
+
+            mentor_vtt_update(
+                MentorVttUpdateRequest(
+                    mentor=mentor,
+                    question=question,
+                    vtt_url=item_path,
+                    vtt_text=new_vtt_str,
+                ),
+                auth_headers,
+            )
         else:
             raise Exception(f"Failed to find vtt file at {vtt_file_path}")
-        data = {"regen_vtt": True}
+        static_url_base = require_env("STATIC_URL_BASE")
+
+        data = {
+            "regen_vtt": True,
+            "new_vtt_text": new_vtt_str,
+            "new_vtt_url": urljoin(static_url_base, item_path),
+        }
         return create_json_response(200, data, event)
