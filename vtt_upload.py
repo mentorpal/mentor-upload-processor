@@ -8,7 +8,6 @@ import base64
 import boto3
 import json
 import os
-from datetime import datetime
 from cgi import parse_header, FieldStorage
 from io import BytesIO
 from urllib.parse import urljoin
@@ -114,7 +113,7 @@ def handler(event, context):
         }
         return create_json_response(401, data, event)
 
-    s3_vtt_path = f"videos/{mentor}/{question_id}/{datetime.utcnow().strftime('%Y%m%dT%H%M%SZ')}/en.vtt"
+    s3_vtt_path = f"videos/{mentor}/{question_id}/en.vtt"
 
     s3_client.upload_fileobj(
         form_data["vtt_file"].file,
