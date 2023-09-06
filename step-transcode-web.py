@@ -92,7 +92,6 @@ def process_task(request):
         is_vbg_video = request["isVbgVideo"] if "isVbgVideo" in request else False
         if is_vbg_video:
             try:
-
                 file_mime_type = get_file_mime(work_file)
                 file_encoding = get_video_encoding_type(work_file)
                 if file_mime_type == "video/webm" and file_encoding == "vp9":
