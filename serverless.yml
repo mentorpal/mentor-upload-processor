@@ -80,7 +80,7 @@ custom:
         layersDeploymentBucket: ${self:provider.deploymentBucket.name}
         dependenciesPath: ./requirements.txt
         compatibleRuntimes:
-          - python3.8
+          - python3.9
         # applies to all lambdas
 
 provider:
@@ -96,7 +96,7 @@ provider:
     ENVIRONMENT: ${self:provider.stage}
     PROJECT: ${self:service}-${self:provider.stage}
     REPOSITORY: mentor-upload
-  runtime: python3.8
+  runtime: python3.9
   architecture: x86_64 # because of the static ffmpeg binaries and python dependencies
   endpointType: regional
   apiGateway:

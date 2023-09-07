@@ -19,7 +19,7 @@ phases:
       # workaround https://github.com/aws/aws-codebuild-docker-images/issues/490:
       - n 18
       # 3.9 is now the default and deploy fails to install deps so make sure its 3.8:
-      - pyenv global $PYTHON_38_VERSION
+      - pyenv global $PYTHON_39_VERSION
 
   build:
     commands:

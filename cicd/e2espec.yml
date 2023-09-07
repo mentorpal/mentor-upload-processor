@@ -32,7 +32,7 @@ phases:
   pre_build:
     commands:
       - n 18 # workaround https://github.com/aws/aws-codebuild-docker-images/issues/490
-      - pyenv global $PYTHON_38_VERSION
+      - pyenv global $PYTHON_39_VERSION
       - python3 -m venv /root/venv
       - . /root/venv/bin/activate
       # these are required to run tests
