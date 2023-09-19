@@ -20,7 +20,7 @@
     "url": "git+https://github.com/mentorpal/mentor-upload.git"
   },
   "engines": {
-    "node": ">=16.13.0 <17"
+    "node": ">=18.13.0"
   },
   "keywords": [
     "sqs",
