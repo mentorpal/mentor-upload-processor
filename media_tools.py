@@ -5,6 +5,7 @@
 # The full terms of this copyright and license should always be found in the root directory of this software deliverable as "license.txt" and if these terms are not found with this software, please contact the USC Stevens Center for the full license.
 #
 from dataclasses import dataclass
+import boto3
 import logging
 import os
 import re
@@ -15,8 +16,11 @@ import filetype
 import subprocess
 import json
 import hashlib
+from module.api import MentorThumbnailUpdateRequest, mentor_thumbnail_update
 from module.constants import Supported_Video_Type, supported_video_types
 from pymediainfo import MediaInfo
+
+from module.utils import require_env, s3_bucket
 
 
 LIB_FILE = os.environ.get(
@@ -347,6 +351,58 @@ def ffmpeg_barebones_transcode(src_file: str, tgt_file: str):
     )
     ff.run()
     log.debug(ff)
+
+
+def ffmpeg_extract_frame(video_file, target_file_path):
+    log.info("starting ffmpeg extract frame")
+    ff = ffmpy.FFmpeg(
+        inputs={str(video_file): None},
+        outputs={
+            str(target_file_path): (
+                "-ss",
+                "00:00:01",
+                "-vframes",
+                "1",
+                "-q:v",
+                "2",
+            )
+        },
+        executable=FFMPEG_EXECUTABLE,
+    )
+    ff.run()
+    log.debug(ff)
+
+
+def extract_frame_from_video(temp_path, video_file_path):
+    target_file = "frame.jpg"
+    target_file_path = os.path.join(temp_path, target_file)
+
+    log.info("extracting frame from %s", video_file_path)
+    ffmpeg_extract_frame(video_file_path, target_file_path)
+
+    return target_file_path
+
+
+aws_region = require_env("REGION")
+s3_client = boto3.client("s3", region_name=aws_region)
+
+
+def upload_thumbnail(
+    s3_target_upload_path, thumbnail_local_file_path, mentor_id, auth_headers
+):
+    with open(thumbnail_local_file_path, "rb") as f:
+        s3_client.upload_fileobj(
+            f,
+            s3_bucket,
+            s3_target_upload_path,
+            ExtraArgs={"ContentType": "image/png"},
+        )
+        mentor_thumbnail_update(
+            MentorThumbnailUpdateRequest(
+                mentor=mentor_id, thumbnail=s3_target_upload_path
+            ),
+            auth_headers,
+        )
 
 
 def video_encode_for_web(

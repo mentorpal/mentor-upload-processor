@@ -1143,3 +1143,23 @@ def fetch_answer_transcript_and_media(
             f"No video media found for mentor {mentor} and question {question}"
         )
     return (transcript, web_media or mobile_media)
+
+
+def mentor_thumbnail_req(mentor_id: str) -> GQLQueryBody:
+    return {
+        "query": """query Mentor($id: ID!) {
+          mentor(id: $id) {
+            thumbnail
+          }
+        }""",
+        "variables": {
+            "id": mentor_id,
+        },
+    }
+
+
+def does_mentor_have_thumbnail(mentor: str, auth_headers: Dict[str, str] = {}):
+    gql_query = mentor_thumbnail_req(mentor)
+    tdjson = __auth_gql(gql_query, auth_headers)
+    mentor_data = tdjson["data"]["mentor"]
+    return mentor_data["thumbnail"] is not None and mentor_data["thumbnail"] != ""
