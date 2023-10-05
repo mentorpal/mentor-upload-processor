@@ -24,7 +24,6 @@ from media_tools import (
 from module.api import (
     UpdateTaskStatusRequest,
     AnswerUpdateRequest,
-    does_mentor_have_thumbnail,
     upload_task_status_update,
     upload_answer_and_task_status_update,
     fetch_question_name,
@@ -84,6 +83,7 @@ def transcode_web(
 def process_task(request):
     auth_headers = request["authHeaders"]
     maintain_original_aspect_ratio = request["maintain_original_aspect_ratio"]
+    generate_thumbnail = request["generate_thumbnail"]
     log.info("video to process %s", request["video"])
     question_id = request["question"]
     mentor_id = request["mentor"]
@@ -102,23 +102,11 @@ def process_task(request):
     with tempfile.TemporaryDirectory() as work_dir:
         work_file = os.path.join(work_dir, "original_video")
         s3.download_file(s3_bucket, request["video"], work_file)
-
-        try:
-            idle_question = is_idle_question(question_id, auth_headers)
-            if idle_question:
-                mentor_has_thumbnail = does_mentor_have_thumbnail(
-                    mentor_id, auth_headers
-                )
-                if mentor_has_thumbnail is False:
-                    log.info("extracting thumbnail frame from %s", work_file)
-                    frame_file = extract_frame_from_video(work_dir, work_file)
-                    thumbnail_path = f"mentor/thumbnails/{request['mentor']}/{datetime.utcnow().strftime('%Y%m%dT%H%M%SZ')}/thumbnail.jpg"
-                    upload_thumbnail(
-                        thumbnail_path, frame_file, mentor_id, auth_headers
-                    )
-        except Exception as e:
-            log.info("error extracting/uploading thumbnail from video")
-            log.info(e)
+        if generate_thumbnail:
+            log.info("extracting thumbnail frame from %s", work_file)
+            frame_file = extract_frame_from_video(work_dir, work_file)
+            thumbnail_path = f"mentor/thumbnails/{request['mentor']}/{datetime.utcnow().strftime('%Y%m%dT%H%M%SZ')}/thumbnail.jpg"
+            upload_thumbnail(thumbnail_path, frame_file, mentor_id, auth_headers)
 
         is_vbg_video = request["isVbgVideo"] if "isVbgVideo" in request else False
         if is_vbg_video:

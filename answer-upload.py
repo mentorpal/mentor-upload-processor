@@ -177,6 +177,11 @@ def handler(event, context):
         else None
     )
     print(external_video_ids, flush=True)
+    generate_thumbnail = (
+        upload_request["generateThumbnail"]
+        if "generateThumbnail" in upload_request
+        else False
+    )
     is_vbg_video = (
         upload_request["isVbgVideo"] if "isVbgVideo" in upload_request else False
     )  # vbg videos are expected to be in format of mime type webm with vp9 encoding
@@ -250,6 +255,7 @@ def handler(event, context):
             "transcribeTask": transcribe_task,
             "authHeaders": auth_headers,
             "maintain_original_aspect_ratio": maintain_original_aspect_ratio,
+            "generate_thumbnail": generate_thumbnail,
         }
     }
 
