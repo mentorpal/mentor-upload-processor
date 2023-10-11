@@ -30,7 +30,7 @@ def handler(event, context):
         object_name,
         Fields={"key": object_name},
         Conditions=[
-            ["content-length-range", 0, 52_428_800],  # 50MB
+            ["content-length-range", 0, 104_857_600],  # 100MB
             # ["starts-with", "$Content-Type", "video/"],
         ],
         ExpiresIn=3600,
