@@ -117,13 +117,13 @@ To debug in VS Code, use this config:
       "program": "${file}",
       "justMyCode": false,
       "env": {
-        "S3_STATIC_ARN": "arn:aws:s3:::static-mentorpal-v2-mentorpal-origin",
+        "S3_STATIC_ARN": "arn:aws:s3:::static-qamentorpal-qamentorpal-origin",
         "GRAPHQL_ENDPOINT": "http://127.0.0.1:3001/graphql",
         "FFMPEG_EXECUTABLE": "ffmpeg",
         "STATIC_AWS_ACCESS_KEY_ID": "secret",
         "STATIC_AWS_REGION": "us-east-1",
         "AWS_REGION": "us-east-1",
-        "STATIC_AWS_S3_BUCKET": "static-mentorpal-v2-mentorpal-origin",
+        "STATIC_AWS_S3_BUCKET": "static-qamentorpal-qamentorpal-origin",
         "STATIC_AWS_SECRET_ACCESS_KEY": "secret",
         "TRANSCRIBE_INPUT_BUCKET": "mentorpal-upload-sm-transcribe-input-dev",
         "TRANSCRIBE_OUTPUT_BUCKET": "mentorpal-upload-sm-transcribe-output-dev"
