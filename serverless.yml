@@ -60,7 +60,7 @@ custom:
       SECRET_HEADER_VALUE: ${ssm:/mentorpal/v2/shared/secret_header_value, ''}
       SECRET_HEADER_NAME: ${ssm:/mentorpal/v2/shared/secret_header_name, ''}
       STATIC_URL_BASE: ${ssm:/mentorpal/v2/shared/static_url_base, ''}
-      ALERT_SNS_ARN: ${ssm:/mentorpal/v2/shared/sns_alert_topic_arn, ''}
+      ALERT_SNS_ARN: ${ssm:/qamentorpal/shared/sns_alert_topic_arn, ''}
       WEBACL_ARN: ${ssm:/qamentorpal/api_firewall_arn, ''}
     prod:
       LOG_LEVEL: INFO
@@ -70,7 +70,7 @@ custom:
       JWT_SECRET: ${ssm:/mentorpal/cf/shared/jwt_secret, ''}
       SECRET_HEADER_VALUE: ${ssm:/mentorpal/cf/shared/secret_header_value, ''}
       SECRET_HEADER_NAME: ${ssm:/mentorpal/cf/shared/secret_header_name, ''}
-      ALERT_SNS_ARN: ${ssm:/mentorpal/cf/shared/sns_alert_topic_arn, ''}
+      ALERT_SNS_ARN: ${ssm://mentorpal/shared/sns_alert_topic_arn, ''}
       STATIC_URL_BASE: ${ssm:/mentorpal/cf/shared/static_url_base, ''}
       WEBACL_ARN: ${ssm:/mentorpal/api_firewall_arn, ''}
 
