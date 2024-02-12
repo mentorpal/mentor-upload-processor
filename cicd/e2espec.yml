@@ -17,7 +17,7 @@ env:
     REGION: us-east-1
     GRAPHQL_ENDPOINT: https://api.qamentorpal.org/graphql/graphql
     UPLOAD_ENDPOINT: https://api.qamentorpal.org/upload
-    STATIC_URL_BASE: https://static-v2.mentorpal.org/
+    STATIC_URL_BASE: https://static.qamentorpal.org/
     JOBS_TABLE_NAME: upload-jobs-qa
     FFMPEG_EXECUTABLE: /opt/ffmpeg/ffmpeg
     TRANSCRIBE_INPUT_BUCKET: 'mentorpal-upload-sm-transcribe-input-qa'
