@@ -7,7 +7,7 @@ version: 0.2
 env:
   parameter-store:
     JWT_SECRET: /mentorpal/v2/shared/jwt_secret
-    S3_STATIC_ARN: /mentorpal/v2/s3_static_arn
+    S3_STATIC_ARN: /qamentorpal/s3_static_arn
   # the rest can safely be hard-coded:
   variables:
     LOG_LEVEL: DEBUG
