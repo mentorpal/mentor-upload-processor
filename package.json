@@ -11,7 +11,7 @@
   "scripts": {
     "deploy:dev": "sls deploy -s dev --region us-east-1",
     "deploy:qa": "sls deploy -s qa --region us-east-1",
-    "deploy:prod": "sls deploy -s prod --region us-west-2",
+    "deploy:prod": "sls deploy -s prod --region us-east-1",
     "license:fix": "license-check-and-add remove -f license-config.json && license-check-and-add add -f license-config.json",
     "license:deploy": "license-check-and-add remove -f license-config.json && license-check-and-add add -f $LICENSE_CONFIG"
   },

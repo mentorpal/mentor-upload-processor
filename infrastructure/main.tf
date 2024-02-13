@@ -18,7 +18,8 @@ provider "aws" {
   alias  = "us_east_1"
 }
 
-provider "aws" {
-  region = "us-west-2"
-  alias  = "us_west_2"
-}
+# Note: Commented out after moving to us-east-1 only
+# provider "aws" {
+#   region = "us-west-2"
+#   alias  = "us_west_2"
+# }
