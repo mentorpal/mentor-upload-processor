@@ -144,7 +144,7 @@ def input_output_args_trim_video(
         "-c:v",
         "libx264" if video_mime_type == "video/mp4" else "libvpx-vp9",
         "-crf",
-        "30",
+        "23",
     )
     return input_args, output_args
 
