@@ -145,6 +145,10 @@ def input_output_args_trim_video(
         "libx264" if video_mime_type == "video/mp4" else "libvpx-vp9",
         "-crf",
         "23",
+        "-c:a",  # Audio codec
+        "aac" if video_mime_type == "video/mp4" else "libvorbis",
+        "-b:a",  # Audio bit rate
+        "192k"
     )
     return input_args, output_args
 
