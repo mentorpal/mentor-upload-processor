@@ -146,9 +146,7 @@ def input_output_args_trim_video(
         "-crf",
         "23",
         "-c:a",  # Audio codec
-        "aac" if video_mime_type == "video/mp4" else "libvorbis",
-        "-b:a",  # Audio bit rate
-        "192k"
+        "copy"  # Copy the original audio without re-encoding
     )
     return input_args, output_args
 
