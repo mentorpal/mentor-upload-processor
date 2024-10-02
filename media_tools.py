@@ -133,6 +133,7 @@ def input_output_args_trim_video(
     if o_h % 2 != 0:
         o_h += 1  # ensure height is divisible by 2
     input_args = ("-c:v", "libvpx-vp9") if video_mime_type == "video/webm" else None
+    audio_codec = "libopus" if video_mime_type == "video/webm" else "aac"
     output_args = (
         "-y",
         "-filter:v",
@@ -144,9 +145,9 @@ def input_output_args_trim_video(
         "-c:v",
         "libx264" if video_mime_type == "video/mp4" else "libvpx-vp9",
         "-crf",
-        "23",
+        "10",
         "-c:a",
-        "aac",  # Use AAC as audio codec
+        audio_codec,
         "-b:a",
         "192k"  # Higher bit rate
     )
@@ -166,7 +167,7 @@ def webm_vp9_ffmpeg_transcode_args(
             "-c:v",
             "libvpx-vp9",  # vp9 codec supports alpha channel
             "-crf",
-            "23",
+            "10",
             "-pix_fmt",
             "yuva420p",  # add alpha channel
             "-movflags",
@@ -234,7 +235,7 @@ def mp4_ffmpeg_transcode_args(
             "-c:v",
             "libx264",
             "-crf",
-            "23",
+            "10",
             "-pix_fmt",
             "yuv420p",
             "-movflags",
