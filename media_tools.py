@@ -149,7 +149,7 @@ def input_output_args_trim_video(
         "-c:a",
         audio_codec,
         "-b:a",
-        "192k"  # Higher bit rate
+        "320k"
     )
     return input_args, output_args
 
@@ -165,23 +165,23 @@ def webm_vp9_ffmpeg_transcode_args(
             "-filter:v",
             f"crop=iw-{crop_iw:.0f}:ih-{crop_ih:.0f},scale={scale_ow:.0f}:{scale_oh:.0f},fps=30",
             "-c:v",
-            "libvpx-vp9",  # vp9 codec supports alpha channel
+            "libvpx-vp9",
             "-crf",
             "10",
             "-pix_fmt",
-            "yuva420p",  # add alpha channel
+            "yuva420p",
             "-movflags",
             "+faststart",
             "-c:a",
-            "aac",
+            "libvorbis",
+            "-b:a",
+            "320k",
             "-ac",
-            "1",
+            "2",
             "-loglevel",
             "verbose",
             "-metadata:s:v:0",
             "alpha_mode=1",
-            "-acodec",
-            "libvorbis",
         ),
     )
 
@@ -242,8 +242,10 @@ def mp4_ffmpeg_transcode_args(
             "+faststart",
             "-c:a",
             "aac",
+            "-b:a",
+            "320k",
             "-ac",
-            "1",
+            "2",
             "-loglevel",
             "quiet",
         ),
