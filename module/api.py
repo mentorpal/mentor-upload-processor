@@ -335,6 +335,21 @@ def fetch_task_gql(mentor_id: str, question_id) -> GQLQueryBody:
     }
 
 
+GQL_QUERY_USER_CAN_EDIT_MENTOR = """
+query MentorCanEdit($mentor: ID!){
+        mentorCanEdit(mentor: $mentor)
+} """
+
+
+def query_user_can_edit_mentor(mentor: str) -> GQLQueryBody:
+    return {"query": GQL_QUERY_USER_CAN_EDIT_MENTOR, "variables": {"mentor": mentor}}
+
+
+def user_can_edit_mentor(mentor: str, headers: Dict[str, str] = {}) -> bool:
+    tdjson = __auth_gql(query_user_can_edit_mentor(mentor), headers=headers)
+    return tdjson.get("data")["mentorCanEdit"]
+
+
 def __auth_gql(query: GQLQueryBody, headers: Dict[str, str] = {}) -> dict:
     final_headers = {**headers, f"{SECRET_HEADER_NAME}": f"{SECRET_HEADER_VALUE}"}
     # SSL is not valid for alb so have to turn off validation

@@ -6,7 +6,6 @@
 #
 import base64
 import boto3
-import json
 import os
 from cgi import parse_header, FieldStorage
 from io import BytesIO
@@ -14,13 +13,13 @@ from urllib.parse import urljoin
 from module.api import (
     MentorVttUpdateRequest,
     mentor_vtt_update,
+    user_can_edit_mentor,
 )
 from module.logger import get_logger
 from module.utils import (
     create_json_response,
     get_text_from_file,
     s3_bucket,
-    is_authorized,
     load_sentry,
     require_env,
     get_auth_headers,
@@ -105,8 +104,8 @@ def handler(event, context):
 
     mentor = form_data["mentor"].value
     question_id = form_data["question"].value
-    token = json.loads(event["requestContext"]["authorizer"]["token"])
-    if not is_authorized(mentor, token):
+    auth_headers = get_auth_headers(event)
+    if not user_can_edit_mentor(mentor, auth_headers):
         data = {
             "error": "not authorized",
             "message": "not authorized",
