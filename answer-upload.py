@@ -16,7 +16,6 @@ from media_tools import assert_video_duration, get_video_file_type
 from module.utils import (
     create_json_response,
     s3_bucket,
-    is_authorized,
     load_sentry,
     require_env,
     get_auth_headers,
@@ -28,6 +27,7 @@ from module.api import (
     AnswerUpdateRequest,
     UploadTaskRequest,
     upload_answer_update,
+    user_can_edit_mentor,
 )
 from module.logger import get_logger
 
@@ -187,9 +187,8 @@ def handler(event, context):
     )  # vbg videos are expected to be in format of mime type webm with vp9 encoding
     trim = upload_request.get("trim")
     has_edited_transcript = upload_request.get("hasEditedTranscript")
-    token = json.loads(event["requestContext"]["authorizer"]["token"])
 
-    if not is_authorized(mentor, token):
+    if not user_can_edit_mentor(mentor, auth_headers):
         data = {
             "error": "not authorized",
             "message": "not authorized",

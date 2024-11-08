@@ -14,12 +14,12 @@ from urllib.parse import urljoin
 from module.api import (
     MentorVbgUpdateRequest,
     mentor_vbg_update,
+    user_can_edit_mentor,
 )
 from module.logger import get_logger
 from module.utils import (
     create_json_response,
     s3_bucket,
-    is_authorized,
     load_sentry,
     require_env,
     get_auth_headers,
@@ -85,8 +85,8 @@ def handler(event, context):
         return create_json_response(401, data, event)
 
     mentor = vbg_request["mentor"]
-    token = json.loads(event["requestContext"]["authorizer"]["token"])
-    if not is_authorized(mentor, token):
+    auth_headers = get_auth_headers(event)
+    if not user_can_edit_mentor(mentor, auth_headers):
         data = {
             "error": "not authorized",
             "message": "not authorized",

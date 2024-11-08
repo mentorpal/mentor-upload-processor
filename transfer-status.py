@@ -4,9 +4,9 @@
 #
 # The full terms of this copyright and license should always be found in the root directory of this software deliverable as "license.txt" and if these terms are not found with this software, please contact the USC Stevens Center for the full license.
 #
-import json
 import boto3
-from module.utils import load_sentry, create_json_response, require_env, is_authorized
+from module.api import user_can_edit_mentor
+from module.utils import get_auth_headers, load_sentry, create_json_response, require_env
 from module.logger import get_logger
 
 load_sentry()
@@ -21,13 +21,13 @@ job_table = dynamodb.Table(JOBS_TABLE_NAME)
 def handler(event, context):
     log.info(event)
     status_id = event["pathParameters"]["id"]
-    token = json.loads(event["requestContext"]["authorizer"]["token"])
+    auth_headers = get_auth_headers(event)
 
     db_item = job_table.get_item(Key={"id": status_id})
     log.debug(db_item)
     if "Item" in db_item:
         item = db_item["Item"]
-        if not is_authorized(item["mentor"], token):
+        if not user_can_edit_mentor(item["mentor"], auth_headers):
             status = 401
             data = {
                 "error": "not authorized",
