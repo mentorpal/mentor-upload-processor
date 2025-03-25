@@ -149,7 +149,7 @@ def input_output_args_trim_video(
         "-c:a",
         audio_codec,
         "-b:a",
-        "320k"
+        "320k" if video_mime_type == "video/mp4" else "256k"
     )
     return input_args, output_args
 
