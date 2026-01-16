@@ -83,6 +83,7 @@ def upload_to_s3(
     mentor,
     question,
     auth_headers,
+    has_edited_transcript,
 ):
     log.info("uploading %s to %s", file_path, s3_path)
 
@@ -94,7 +95,8 @@ def upload_to_s3(
             question,
             web_media={"type": "video", "tag": "web", "url": ""},
             mobile_media={"type": "video", "tag": "mobile", "url": ""},
-            vtt_media={"type": "subtitles", "tag": "en", "url": ""},
+            # Do not remove the vtt since we will not be generating a new one for the edited transcript case.
+            vtt_media={"type": "subtitles", "tag": "en", "url": ""} if not has_edited_transcript else None,
         ),
         auth_headers,
     )
@@ -226,7 +228,7 @@ def handler(event, context):
         s3_path = f"videos/{mentor}/{question}"
         # this will overwrite any existing file
         upload_to_s3(
-            file_path, video_file_type, s3_path, mentor, question, auth_headers
+            file_path, video_file_type, s3_path, mentor, question, auth_headers, has_edited_transcript
         )
 
     (
